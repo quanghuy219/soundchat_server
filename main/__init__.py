@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from flask_cors import CORS
+from redis import Redis
 
 from main.cfg import config
 from main.errors import Error
@@ -21,6 +22,7 @@ _metadata = MetaData(naming_convention=_naming_convention)
 db = SQLAlchemy(app=app, metadata=_metadata)
 
 CORS(app)
+redis = Redis.from_url(config.REDIS_URI)
 
 
 def _register_subpackages():
