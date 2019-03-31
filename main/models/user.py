@@ -6,7 +6,7 @@ from main.utils.password import generate_salt, generate_hash
 class UserModel(db.Model, TimestampMixin):
     __tablename__ = 'user'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True)
     password_hash = db.Column(db.String(64), nullable=False)

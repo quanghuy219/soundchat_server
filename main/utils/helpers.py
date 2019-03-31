@@ -7,7 +7,7 @@ from flask import request
 
 from main import db
 from main.cfg import config
-from main.error import Error, StatusCode
+from main.errors import Error, StatusCode
 from main.models.user import UserModel
 
 
@@ -15,7 +15,6 @@ def encode(account):
     iat = datetime.datetime.utcnow()
     return jwt.encode({
         'sub': account.id,
-        'account_type': account.account_type,
         'iat': iat,
         'exp': iat + datetime.timedelta(days=365)
     }, config.SECRET_KEY).decode('utf-8')
@@ -59,7 +58,7 @@ def parse_request_args(schema):
     return parse_request_args_decorator
 
 
-def access_token_require(f):
+def access_token_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         authorization = None

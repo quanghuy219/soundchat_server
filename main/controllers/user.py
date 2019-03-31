@@ -1,11 +1,12 @@
 from flask import jsonify
 
 from main import db, app
-from main.error import Error, StatusCode
+from main.errors import Error, StatusCode
 from main.utils import password as pw
-from main.utils.helpers import encode, parse_request_args
+from main.utils.helpers import encode, parse_request_args, access_token_required
 from main.models.user import UserModel
 from main.schemas.user import UserSchema
+from main.enums import UserStatus
 
 
 @app.route('/api/login', methods=['POST'])
@@ -28,14 +29,13 @@ def register_new_user(**kwargs):
     args = kwargs['args']
     email = args['email']
 
-    if UserModel.get_account_by_email(email) is not None:
+    if UserModel.get_user_by_email(email) is not None:
         raise Error(StatusCode.BAD_REQUEST, 'This email has been registered before')
 
-    user = UserModel(**args)
+    user = UserModel(**args, status=UserStatus.ACTIVE)
     db.session.add(user)
     db.session.commit()
     return jsonify({
         'message': 'New account for student is created',
         'data': UserSchema().dump(user).data
     }), 200
-
