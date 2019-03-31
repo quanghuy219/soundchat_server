@@ -2,7 +2,7 @@ from main import db
 from main.models.base import TimestampMixin
 
 
-class Media(db.Model, TimestampMixin):
+class Vote(db.Model, TimestampMixin):
     __tablename__ = 'vote'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -2,7 +2,7 @@ import random
 import json
 
 from main import app
-from main.models.user import UserModel
+from main.models.user import User
 
 
 def random_id():
@@ -12,7 +12,7 @@ def random_id():
 def random_email():
     email = 'test_{}@test.com'.format(random_id())
 
-    while UserModel.get_account_by_email(email) is not None:
+    while User.get_user_by_email(email) is not None:
         email = 'test_{}@test.com'.format(random_id())
 
     return email
@@ -23,10 +23,10 @@ def setup_user(session, email=None, password='123456', name='Testing User'):
     if email is None:
         email = random_email()
 
-    account = UserModel(name=name, email=email, password=password)
-    session.add(account)
+    user = User(name=name, email=email, password=password)
+    session.add(user)
     session.commit()
-    return account
+    return user
 
 
 test_app = app.test_client()

@@ -2,7 +2,7 @@ from main import db
 from main.models.base import TimestampMixin
 
 
-class RoomModel(db.Model, TimestampMixin):
+class RoomParticipant(db.Model, TimestampMixin):
     __tablename__ = 'room_paticipant'
 
     id = db.Column(db.Integer, autoincrement=True)

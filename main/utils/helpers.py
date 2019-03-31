@@ -8,7 +8,7 @@ from flask import request
 from main import db
 from main.cfg import config
 from main.errors import Error, StatusCode
-from main.models.user import UserModel
+from main.models.user import User
 
 
 def encode(account):
@@ -75,7 +75,7 @@ def access_token_required(f):
         # Decode the token which has been passed in the request headers
         token = decode(authorization[len('Bearer '):])
 
-        account = db.session.query(UserModel).filter_by(id=token['sub']).one_or_none()
+        account = db.session.query(User).filter_by(id=token['sub']).one_or_none()
 
         if not account:
             raise Error(StatusCode.UNAUTHORIZED, 'Unauthorized')

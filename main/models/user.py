@@ -3,7 +3,7 @@ from main.models.base import TimestampMixin
 from main.utils.password import generate_salt, generate_hash
 
 
-class UserModel(db.Model, TimestampMixin):
+class User(db.Model, TimestampMixin):
     __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -19,8 +19,8 @@ class UserModel(db.Model, TimestampMixin):
             kwargs['password_salt'] = generate_salt()
             kwargs['password_hash'] = generate_hash(password, kwargs['password_salt'])
 
-        super(UserModel, self).__init__(*args, **kwargs)
+        super(User, self).__init__(*args, **kwargs)
 
     @staticmethod
     def get_user_by_email(email):
-        return db.session.query(UserModel).filter_by(email=email).first()
+        return db.session.query(User).filter_by(email=email).first()
