@@ -9,7 +9,7 @@
 
 - Go to project folder by `cd /path/to/project/folder`
 
-- Set up database by importing `soundchat.sql` file, or create fresh database named 'soundchat_development' and run `python3 database.py`
+- Set up database by importing `soundchat.sql` file, or create fresh database named 'soundchat_dev' and run `python3 database.py`
 
 - Set up [Virtualenv](https://docs.python.org/3/library/venv.html)
     ```
@@ -28,6 +28,8 @@
     $ ./start_server.sh
     ```
 - Run test:
+    
+    - Create a testing database `soundchat_test`, then run
     ```
     $ ./run_tests.sh
     ```
