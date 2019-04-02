@@ -39,3 +39,5 @@ def register_new_user(**kwargs):
         'message': 'New account for student is created',
         'data': UserSchema().dump(user).data
     }), 200
+
+
