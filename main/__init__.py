@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from flask_cors import CORS
 from redis import Redis
+import pusher
 
 from main.cfg import config
 from main.errors import Error
@@ -23,6 +24,13 @@ db = SQLAlchemy(app=app, metadata=_metadata)
 
 CORS(app)
 redis = Redis.from_url(config.REDIS_URI)
+
+pusher_client = pusher.Pusher(
+  app_id=config.PUSHER_APP_ID,
+  key=config.PUSHER_KEY,
+  secret=config.PUSHER_SECRET,
+  cluster=config.PUSHER_CLUSTER
+)
 
 
 def _register_subpackages():

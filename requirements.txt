@@ -8,4 +8,5 @@ pytest==4.3.0
 coverage==4.5.2
 Flask-Cors==3.0.7
 redis==3.2.1
-celery==4.3.0
+celery[redis]==4.3.0
+pusher==2.1.3
