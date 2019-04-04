@@ -88,5 +88,27 @@ def add_member_to_room(room_id, **kwargs):
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
 
 
+@app.route('/api/rooms/<int:room_id>/users', methods=['DELETE'])
+@parse_request_args(RoomParticipantSchema())
+@access_token_required
+def delete_member_in_room(room_id, **kwargs):
+    user = kwargs['user']
+    args = kwargs['args']
+    name = args['name']
+    if User.get_user_by_email(user.email) is not None: 
+        deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id).first()
+        if deleted_participant is not None: 
+            db.session.delete(deleted_participant)
+            db.session.commit()
+            return jsonify({
+                'message': 'Participant deleted successfully'
+            }), 200 
+        return jsonify({
+            'message': 'Failed to delete participant'
+        }), 200
+    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+
+
+
 
     
