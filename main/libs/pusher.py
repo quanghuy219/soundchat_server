@@ -1,8 +1,7 @@
 import logging
 
-from pusher.errors import PusherError
-
 from main import pusher_client
+from main.libs.tasks import celery_app
 
 
 def parse_channel_name(channel_name):
@@ -25,15 +24,20 @@ def authenticate(request, account):
                 'user_id': account.id
             }
         )
-    except PusherError:
+    except Exception:
         logging.exception('Pusher authentication exception')
         return None
 
     return auth
 
 
+@celery_app.task
 def _trigger_pusher(channel_name, event, data):
     try:
         pusher_client.trigger(channel_name, event, data)
-    except PusherError:
+    except Exception:
         logging.exception('Pusher exception occurs')
+
+
+def _trigger_new_message(channel_name, data):
+    return _trigger_pusher.delay(channel_name, 'new_message', data)

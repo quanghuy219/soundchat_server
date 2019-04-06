@@ -1,0 +1,1 @@
+celery -A tasks worker --app=main.libs.tasks --loglevel=DEBUG
