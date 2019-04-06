@@ -39,10 +39,3 @@ def register_new_user(**kwargs):
         'message': 'New account for student is created',
         'data': UserSchema().dump(user).data
     }), 200
-
-
-@app.route('/api/test')
-def test():
-    from main import pusher_client
-    pusher_client.trigger('presence-channel', 'my-event', {'message': 'hello world'})
-    return jsonify({})
