@@ -1,1 +1,1 @@
-from . import user, room
+from . import user, room, message
