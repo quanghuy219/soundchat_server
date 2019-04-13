@@ -12,7 +12,7 @@ from main.schemas.room import RoomSchema
 from main.schemas.user import UserSchema
 from main.enums import UserStatus, RoomParticipantStatus
 from main.schemas.room_participant import RoomParticipantSchema
-
+from main.libs.pusher import _trigger_pusher
 
 @app.route('/api/rooms', methods=['GET'])
 @access_token_required
@@ -59,9 +59,16 @@ def create_room(**kwargs):
     user = kwargs['user']
     
     if User.get_user_by_email(user.email) is not None:
-        new_room = Room(**args, creator_id=user.id)
+        room_name = "presence-room_%d" %(args['id'])
+        new_room = Room(**args, name=room_name, creator_id=user.id)
         db.session.add(new_room)
         db.session.commit()
+
+        # when creator creates the room, he automatically joins that room 
+        creator_participant = RoomParticipant(name=None, user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+        db.session.add(creator_participant)
+        db.session.commit()
+        
         return jsonify({
             'message': 'New room is created',
             'data': RoomSchema().dump(new_room).data
@@ -69,18 +76,28 @@ def create_room(**kwargs):
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
     
 
+
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
 @parse_request_args(RoomParticipantSchema())
 @access_token_required
 def add_member_to_room(room_id, **kwargs):
-    # TODO send messsage notifying new participant 
     user = kwargs['user']
     args = kwargs['args']
     name = args['name']
     if User.get_user_by_email(user.email) is not None:
         new_participant = RoomParticipant(name=name, user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
+        room = db.session.query(Room).filter_by(id=room_id).first()
         db.session.add(new_participant)
         db.session.commit()
+
+        notification = {
+            "name": name, 
+            "user_id": user.id,
+            "room": room_id
+        }
+
+        _trigger_pusher(room.name, 'new_participant', notification)
+
         return jsonify({
             'message': 'New participant to the room is created',
             'data': RoomParticipantSchema().dump(new_participant).data
@@ -97,9 +114,20 @@ def delete_member_in_room(room_id, **kwargs):
     name = args['name']
     if User.get_user_by_email(user.email) is not None: 
         deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id).first()
+        room = db.session.query(Room).filter_by(id=room_id).first()
+
         if deleted_participant is not None: 
             db.session.delete(deleted_participant)
             db.session.commit()
+
+            notification = {
+                "name": name, 
+                "user_id": user.id,
+                "room": room_id
+            }
+
+            _trigger_pusher(room.name, 'deleted_participant', notification)
+
             return jsonify({
                 'message': 'Participant deleted successfully'
             }), 200 
