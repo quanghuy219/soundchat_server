@@ -9,3 +9,11 @@ class RoomParticipantStatus:
 class RoomStatus:
     ACTIVE = 'active'
     DELETED = 'deleted'
+
+class MediaStatus: 
+    ACTIVE = 'active'
+    DELETED = 'deleted'
+
+class VoteStatus:
+    UPVOTE = 'upvote'
+    DOWNVOTE = 'downvote'
