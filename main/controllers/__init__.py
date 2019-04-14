@@ -1,1 +1,1 @@
-from . import user, pusher
+from . import user, room, message, pusher
