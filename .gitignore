@@ -300,3 +300,5 @@ modules.xml
 .history
 
 # End of https://www.gitignore.io/api/macos,flask,python,pycharm+all,visualstudiocode
+
+pusher_namespace.json
