@@ -11,7 +11,8 @@ from main.schemas.user import UserSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.enums import UserStatus
-from main.libs.pusher import _trigger_new_message, _trigger_pusher
+from main.libs.pusher import trigger_new_message, _trigger_pusher
+
 
 @app.route('/api/messages', methods=['POST'])
 @parse_request_args(MessageSchema())
@@ -21,7 +22,7 @@ def send_message(**kwargs):
     args = kwargs['args']
 
     if User.get_user_by_email(user.email) is not None: 
-        message = Message(**args, user_id=user.id)
+        message = Message(user_id=user.id, **args)
         room = db.session.query(Room).filter_by(id=args['room_id']).first() # query room to get room's name to use later 
         if room is not None: 
             participant = db.session.query(RoomParticipant).filter_by(room_id=room.id, user_id=user.id).first()
@@ -35,7 +36,7 @@ def send_message(**kwargs):
                     "message": args['content']
                 }
 
-                _trigger_new_message(room.name, data)
+                trigger_new_message(room.name, data)
 
                 return jsonify({
                     'message': 'message added successfully',
