@@ -1,4 +1,5 @@
 import logging
+import os
 
 from main import pusher_client
 from main.libs.tasks import celery_app
@@ -39,5 +40,12 @@ def _trigger_pusher(channel_name, event, data):
         logging.exception('Pusher exception occurs')
 
 
-def _trigger_new_message(channel_name, data):
+def trigger(channel_name, event, data):
+    if os.getenv('FLASK_ENV') == 'test':
+        return _trigger_pusher(channel_name, event, data)
+
     return _trigger_pusher.delay(channel_name, 'new_message', data)
+
+
+def trigger_new_message(channel_name, data):
+    return trigger(channel_name, 'new_message', data)
