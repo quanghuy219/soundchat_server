@@ -10,4 +10,3 @@ class Config(object):
     PUSHER_CLUSTER = 'ap1'
     PUSHER_SSL = True
     CELERY_BROKER = 'redis://localhost:6379/5'
-
