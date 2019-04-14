@@ -57,15 +57,14 @@ def get_room_info(**kwargs):
 def create_room(**kwargs):
     args = kwargs['args']
     user = kwargs['user']
-    
+    room_name = "presence-room-%d" %(args['id'])
     if User.get_user_by_email(user.email) is not None:
-        room_name = "presence-room_%d" %(args['id'])
         new_room = Room(**args, name=room_name, creator_id=user.id)
         db.session.add(new_room)
         db.session.commit()
 
         # when creator creates the room, he automatically joins that room 
-        creator_participant = RoomParticipant(name=None, user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+        creator_participant = RoomParticipant(name="room-owner", user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
         db.session.add(creator_participant)
         db.session.commit()
         

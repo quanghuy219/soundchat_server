@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <title>Pusher Test</title>
+  <script src="https://js.pusher.com/4.4/pusher.min.js"></script>
+  <script>
+
+    // Enable pusher logging - don't include this in production
+    Pusher.logToConsole = true;
+
+    var pusher = new Pusher('8ca50ca8ff937987bdce', {
+        cluster: 'ap1',
+        authEndpoint: 'http://localhost:8080/api/messages',
+        auth: {
+            headers: {
+                'Authorization': "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImlhdCI6MTU1NTIxNjY0MCwiZXhwIjoxNTg2NzUyNjQwfQ.Di8jNhziOrjGuvdPykT08Wm26qQBicmsFoHziBZeO5I" // change this 
+            }
+        }
+    });
+
+    var channel = pusher.subscribe('presence-room-1'); // change this 
+    channel.bind('new_chat', function(data) {
+      alert(JSON.stringify(data));
+    });
+  </script>
+</head>
+<body>
+  <h1>Pusher Test</h1>
+  <p>
+    Try publishing an event to channel <code>my-channel</code>
+    with event name <code>my-event</code>.
+  </p>
+</body>

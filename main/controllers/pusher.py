@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, render_template
 
 from main import app
 from main.utils.helpers import access_token_required
@@ -14,3 +14,8 @@ def authenticate_user(user):
         raise Error(status_code=400, message='Bad Request')
 
     return jsonify(res)
+
+
+@app.route('/api/testing')
+def testing():
+    return render_template('pusher.html')
