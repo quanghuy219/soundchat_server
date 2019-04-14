@@ -2,17 +2,19 @@ from flask import jsonify
 
 from main import db, app 
 from main.errors import Error, StatusCode
-from main.utils.helpers import encode, parse_request_args, access_token_required
+from main.utils.helpers import parse_request_args, access_token_required
 from main.models.room import Room
 from main.models.room_paticipant import RoomParticipant
 from main.models.user import User
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.schemas.room import RoomSchema
-from main.schemas.user import UserSchema
-from main.enums import UserStatus, RoomParticipantStatus
+from main.schemas.message import MessageSchema
+from main.schemas.room_playlist import RoomPlaylistSchema
+from main.enums import RoomParticipantStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs.pusher import _trigger_pusher
+
 
 @app.route('/api/rooms', methods=['GET'])
 @access_token_required
@@ -24,7 +26,7 @@ def get_room_list(**kwargs):
         for room in all_rooms:
             room_participants = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
             for participant in room_participants:
-                if member.user_id == id:
+                if participant.user_id == id:
                     room_list.append(RoomSchema().dump(room).data)
         return jsonify({
             'message': "List of user's rooms",
@@ -32,6 +34,7 @@ def get_room_list(**kwargs):
         }), 200
     
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+
 
 @app.route('/api/rooms/<int:room_id>', methods=['GET'])
 @access_token_required
@@ -57,15 +60,14 @@ def get_room_info(**kwargs):
 def create_room(**kwargs):
     args = kwargs['args']
     user = kwargs['user']
-    
+    room_name = "presence-room-%d" %(args['id'])
     if User.get_user_by_email(user.email) is not None:
-        room_name = "presence-room_%d" %(args['id'])
         new_room = Room(**args, name=room_name, creator_id=user.id)
         db.session.add(new_room)
         db.session.commit()
 
         # when creator creates the room, he automatically joins that room 
-        creator_participant = RoomParticipant(name=None, user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+        creator_participant = RoomParticipant(name="room-owner", user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
         db.session.add(creator_participant)
         db.session.commit()
         
@@ -75,7 +77,6 @@ def create_room(**kwargs):
         }), 200
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
     
-
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
 @parse_request_args(RoomParticipantSchema())
@@ -135,8 +136,3 @@ def delete_member_in_room(room_id, **kwargs):
             'message': 'Failed to delete participant'
         }), 200
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
-
-
-
-
-    
