@@ -41,12 +41,12 @@ def _register_subpackages():
 _register_subpackages()
 
 
-@app.errorhandler(404)
-def handle_not_found(exception):
-    """Handle an invalid endpoint"""
-    return jsonify({
-        'error_message': 'Resource not found'
-    }), 404
+# @app.errorhandler(404)
+# def handle_not_found(exception):
+#     """Handle an invalid endpoint"""
+#     return jsonify({
+#         'error_message': 'Resource not found'
+#     }), 404
 
 
 @app.errorhandler(Error)

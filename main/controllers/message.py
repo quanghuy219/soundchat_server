@@ -35,7 +35,7 @@ def send_message(**kwargs):
                     "message": args['content']
                 }
 
-                _trigger_pusher(room.name, 'new_chat', data)
+                _trigger_new_message(room.name, data)
 
                 return jsonify({
                     'message': 'message added successfully',

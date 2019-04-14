@@ -26,7 +26,7 @@ def get_room_list(**kwargs):
         for room in all_rooms:
             room_participants = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
             for participant in room_participants:
-                if participant.user_id == id:
+                if participant.user_id == user.id:
                     room_list.append(RoomSchema().dump(room).data)
         return jsonify({
             'message': "List of user's rooms",
@@ -38,18 +38,18 @@ def get_room_list(**kwargs):
 
 @app.route('/api/rooms/<int:room_id>', methods=['GET'])
 @access_token_required
-def get_room_info(**kwargs):
+def get_room_info(room_id, **kwargs):
     user = kwargs['user']
-    room = db.session.query(Room).filter_by(id=id).first() 
+    room = db.session.query(Room).filter_by(id=room_id).first() 
     if user is not None and room is not None:
-        members = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
-        messages = db.session.query(Message).filter_by(room_id=room.id).all()
-        playlist = db.session.query(RoomPlaylist).filter_by(room_id=room.id).all()
+        participants = db.session.query(RoomParticipant).filter_by(room_id=room_id).all()
+        messages = db.session.query(Message).filter_by(room_id=room_id).all()
+        playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
         return jsonify({
             'message': 'Room Information',
-            'members': RoomParticipantSchema().dump(members).data,
-            'messages': MessageSchema().dump(messages).data,
-            'playlist': RoomPlaylistSchema().dump(playlist).data
+            'participants': RoomParticipantSchema().dump(participants, many=True).data,
+            'messages': MessageSchema().dump(messages, many=True).data,
+            'playlist': RoomPlaylistSchema().dump(playlist, many=True).data
         }), 200
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
 
@@ -62,67 +62,72 @@ def create_room(**kwargs):
     user = kwargs['user']
     room_name = "presence-room-%d" %(args['id'])
     if User.get_user_by_email(user.email) is not None:
-        new_room = Room(**args, name=room_name, creator_id=user.id)
-        db.session.add(new_room)
-        db.session.commit()
+        if db.session.query(Room).filter_by(id=args['id']).first() is None:
+            new_room = Room(**args, name=room_name, creator_id=user.id)
+            db.session.add(new_room)
 
-        # when creator creates the room, he automatically joins that room 
-        creator_participant = RoomParticipant(name="room-owner", user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
-        db.session.add(creator_participant)
-        db.session.commit()
-        
+            # when creator creates the room, he automatically joins that room 
+            creator_participant = RoomParticipant(name="room-owner", user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+            db.session.add(creator_participant)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'New room is created',
+                'data': RoomSchema().dump(new_room).data
+            }), 200
         return jsonify({
-            'message': 'New room is created',
-            'data': RoomSchema().dump(new_room).data
-        }), 200
+            'message': 'Room ID existed'
+        })
     raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
     
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
 @parse_request_args(RoomParticipantSchema())
 @access_token_required
-def add_member_to_room(room_id, **kwargs):
+def add_participant_to_room(room_id, **kwargs):
     user = kwargs['user']
     args = kwargs['args']
     name = args['name']
     if User.get_user_by_email(user.email) is not None:
-        new_participant = RoomParticipant(name=name, user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
-        room = db.session.query(Room).filter_by(id=room_id).first()
-        db.session.add(new_participant)
-        db.session.commit()
-
-        notification = {
-            "name": name, 
-            "user_id": user.id,
-            "room": room_id
-        }
-
-        _trigger_pusher(room.name, 'new_participant', notification)
-
-        return jsonify({
-            'message': 'New participant to the room is created',
-            'data': RoomParticipantSchema().dump(new_participant).data
-        }), 200
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
-
-
-@app.route('/api/rooms/<int:room_id>/users', methods=['DELETE'])
-@parse_request_args(RoomParticipantSchema())
-@access_token_required
-def delete_member_in_room(room_id, **kwargs):
-    user = kwargs['user']
-    args = kwargs['args']
-    name = args['name']
-    if User.get_user_by_email(user.email) is not None: 
-        deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id).first()
-        room = db.session.query(Room).filter_by(id=room_id).first()
-
-        if deleted_participant is not None: 
-            db.session.delete(deleted_participant)
+        checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
+        if checked_participant is None:
+            new_participant = RoomParticipant(name=name, user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
+            room = db.session.query(Room).filter_by(id=room_id).first()
+            db.session.add(new_participant)
             db.session.commit()
 
             notification = {
                 "name": name, 
+                "user_id": user.id,
+                "room": room_id
+            }
+
+            _trigger_pusher(room.name, 'new_participant', notification)
+
+            return jsonify({
+                'message': 'New participant to the room is created',
+                'data': RoomParticipantSchema().dump(new_participant).data
+            }), 200
+        return jsonify({
+            'message': 'Already participated'
+        }), StatusCode.FORBIDDEN
+    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+
+
+@app.route('/api/rooms/<int:room_id>/users', methods=['DELETE'])
+@access_token_required
+def delete_participant_in_room(room_id, **kwargs):
+    user = kwargs['user']
+    if User.get_user_by_email(user.email) is not None: 
+        deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
+        room = db.session.query(Room).filter_by(id=room_id).first()
+
+        if deleted_participant.status == RoomParticipantStatus.ACTIVE: 
+            deleted_participant.status = RoomParticipantStatus.DELETED
+            db.session.commit()
+
+            notification = {
+                "name": deleted_participant.name, 
                 "user_id": user.id,
                 "room": room_id
             }
