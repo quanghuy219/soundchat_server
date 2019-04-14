@@ -1,6 +1,6 @@
 from main import db
 from main.models.base import TimestampMixin
-
+from main.models.media import Media
 
 class Room(db.Model, TimestampMixin):
     __tablename__ = 'room'
@@ -8,5 +8,5 @@ class Room(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    current_media = db.Column(db.Integer, db.ForeignKey('media.id'))
+    current_media = db.Column(db.Integer, db.ForeignKey(Media.id))
     status = db.Column(db.String(50))

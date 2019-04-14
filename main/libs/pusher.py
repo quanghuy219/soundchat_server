@@ -1,4 +1,6 @@
 import logging
+import os
+import json
 
 from main import pusher_client
 from main.libs.tasks import celery_app
@@ -6,13 +8,11 @@ from main.libs.tasks import celery_app
 
 def parse_channel_name(channel_name):
     """Channel name format: presence-room-<room_id>"""
-    channel = channel_name.split('-')
-    if len(channel) != 3:
-        return None
+    with open('pusher_namespace.json') as namespace_file:
+        data = json.load(namespace_file)
+        namespace = data['namespace']
 
-    return {
-        'room': channel[2]
-    }
+    return channel_name + '-' + namespace
 
 
 def authenticate(request, account):
@@ -39,5 +39,12 @@ def _trigger_pusher(channel_name, event, data):
         logging.exception('Pusher exception occurs')
 
 
-def _trigger_new_message(channel_name, data):
-    return _trigger_pusher.delay(channel_name, 'new_message', data)
+def trigger(channel_name, event, data):
+    if os.getenv('FLASK_ENV') == 'test':
+        return _trigger_pusher(parse_channel_name(channel_name), event, data)
+
+    return _trigger_pusher.delay(parse_channel_name(channel_name), 'new_message', data)
+
+
+def trigger_new_message(channel_name, data):
+    return trigger(channel_name, 'new_message', data)

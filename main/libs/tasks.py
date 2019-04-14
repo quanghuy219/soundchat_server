@@ -6,6 +6,3 @@ from main.cfg import config
 
 celery_app = Celery('TaskQueue',
                     broker=config.CELERY_BROKER)
-
-
-
