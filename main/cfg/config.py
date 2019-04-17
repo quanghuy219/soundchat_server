@@ -9,4 +9,5 @@ class Config(object):
     PUSHER_SECRET = '27255f4589e44be0e6e4'
     PUSHER_CLUSTER = 'ap1'
     PUSHER_SSL = True
+    PUSHER_NAMESPACE = ''
     CELERY_BROKER = 'redis://localhost:6379/5'
