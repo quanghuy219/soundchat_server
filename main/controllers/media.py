@@ -111,12 +111,13 @@ def down_vote(media_id, **kwargs):
 def delete_video(media_id, **kwargs):
     user = kwargs['user']
     media = db.session.query(Media).filter_by(creator_id=user.id, id=media_id).first()
-    if media.status == MediaStatus.ACTIVE:
-        media.status = MediaStatus.DELETED 
-        db.session.commit()
-        return jsonify({
-            'message': 'deleted successfully'
-        }), 200
+    if media is not None:
+        if media.status == MediaStatus.ACTIVE:
+            media.status = MediaStatus.DELETED
+            db.session.commit()
+            return jsonify({
+                'message': 'deleted successfully'
+            }), 200
     raise Error(StatusCode.BAD_REQUEST, 'Cannot delete media')
 
 
