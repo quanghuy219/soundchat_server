@@ -3,7 +3,7 @@ from flask import jsonify
 from main import db, app
 from main.errors import Error, StatusCode
 from main.utils import password as pw
-from main.utils.helpers import encode, parse_request_args, access_token_required
+from main.utils.helpers import encode, parse_request_args
 from main.models.user import User
 from main.schemas.user import UserSchema
 from main.enums import UserStatus

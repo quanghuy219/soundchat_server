@@ -1,4 +1,5 @@
-from flask import jsonify 
+from flask import jsonify
+from sqlalchemy import func
 
 from main import db, app 
 from main.errors import Error, StatusCode
@@ -11,9 +12,9 @@ from main.models.room_playlist import RoomPlaylist
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import RoomParticipantStatus
+from main.enums import RoomParticipantStatus, PusherEvent
 from main.schemas.room_participant import RoomParticipantSchema
-from main.libs.pusher import _trigger_pusher
+from main.libs import pusher
 
 
 @app.route('/api/rooms', methods=['GET'])
@@ -67,7 +68,8 @@ def create_room(**kwargs):
             db.session.add(new_room)
 
             # when creator creates the room, he automatically joins that room 
-            creator_participant = RoomParticipant(name="room-owner", user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+            creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id,
+                                                  status=RoomParticipantStatus.ACTIVE)
             db.session.add(creator_participant)
             db.session.commit()
             
@@ -91,7 +93,7 @@ def add_participant_to_room(room_id, **kwargs):
     if User.get_user_by_email(user.email) is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
-            new_participant = RoomParticipant(name=name, user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
+            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
             room = db.session.query(Room).filter_by(id=room_id).first()
             db.session.add(new_participant)
             db.session.commit()
@@ -102,7 +104,7 @@ def add_participant_to_room(room_id, **kwargs):
                 "room": room_id
             }
 
-            _trigger_pusher(room.name, 'new_participant', notification)
+            pusher.trigger(room.name, PusherEvent.NEW_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'New participant to the room is created',
@@ -132,7 +134,7 @@ def delete_participant_in_room(room_id, **kwargs):
                 "room": room_id
             }
 
-            _trigger_pusher(room.name, 'deleted_participant', notification)
+            pusher.trigger(room.name, PusherEvent.DELETE_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'Participant deleted successfully'

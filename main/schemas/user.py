@@ -7,6 +7,8 @@ class UserSchema(Schema):
     name = fields.String(validate=validate.Length(min=3, max=50), required=True)
     email = fields.Email(validate=validate.Length(min=3, max=255), required=True)
     password = fields.String(validate=validate.Length(min=5, max=10), load_only=True, required=True)
+    online = fields.Integer()
+    current_room = fields.Integer()
 
     @validates('password')
     def validate_password(self, password):

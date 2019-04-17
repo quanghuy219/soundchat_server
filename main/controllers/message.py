@@ -11,7 +11,7 @@ from main.schemas.user import UserSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.enums import UserStatus
-from main.libs.pusher import trigger_new_message, _trigger_pusher
+from main.libs.pusher import trigger_new_message
 
 
 @app.route('/api/messages', methods=['POST'])
