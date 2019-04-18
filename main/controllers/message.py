@@ -7,11 +7,9 @@ from main.models.user import User
 from main.models.room import Room
 from main.models.room_paticipant import RoomParticipant
 from main.models.message import Message
-from main.schemas.user import UserSchema
-from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
-from main.enums import UserStatus
-from main.libs.pusher import trigger_new_message
+from main.enums import PusherEvent
+from main.libs import pusher
 
 
 @app.route('/api/messages', methods=['POST'])
@@ -36,7 +34,7 @@ def send_message(**kwargs):
                     "message": args['content']
                 }
 
-                trigger_new_message(room.name, data)
+                pusher.trigger(room.name, PusherEvent.NEW_MESSAGE, data)
 
                 return jsonify({
                     'message': 'message added successfully',
