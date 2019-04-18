@@ -1,5 +1,4 @@
 from flask import jsonify
-from sqlalchemy import func
 
 from main import db, app 
 from main.errors import Error, StatusCode
