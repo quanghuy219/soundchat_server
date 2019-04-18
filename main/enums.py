@@ -22,7 +22,14 @@ class RoomStatus:
     DELETED = 'deleted'
 
 
-class MediaStatus:
+class VoteStatus: 
+    UPVOTE = 'upvote'
+    DOWNVOTE = 'downvote'
+
+
+class MediaStatus: 
+    ACTIVE = 'active'
+    DELETED = 'deleted'
     VOTING = 'voting'
     PLAYING = 'playing'
     FINISHED = 'finished'

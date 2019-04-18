@@ -60,10 +60,9 @@ def get_room_info(room_id, **kwargs):
 def create_room(**kwargs):
     args = kwargs['args']
     user = kwargs['user']
-    room_name = "presence-room-%d" %(args['id'])
     if User.get_user_by_email(user.email) is not None:
         if db.session.query(Room).filter_by(id=args['id']).first() is None:
-            new_room = Room(**args, name=room_name, creator_id=user.id)
+            new_room = Room(**args, creator_id=user.id)
             db.session.add(new_room)
 
             # when creator creates the room, he automatically joins that room 
@@ -83,62 +82,77 @@ def create_room(**kwargs):
     
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
-@parse_request_args(RoomParticipantSchema())
 @access_token_required
 def add_participant_to_room(room_id, **kwargs):
     user = kwargs['user']
-    args = kwargs['args']
-    name = args['name']
-    if User.get_user_by_email(user.email) is not None:
+    room_name = 'presence-room-' + str(room_id)
+    room = db.session.query(Room).filter_by(id=room_id).first()
+    if User.get_user_by_email(user.email) is not None and room is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
             new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
-            room = db.session.query(Room).filter_by(id=room_id).first()
             db.session.add(new_participant)
             db.session.commit()
 
             notification = {
-                "name": name, 
+                "name": user.name,
                 "user_id": user.id,
                 "room": room_id
             }
 
-            pusher.trigger(room.name, PusherEvent.NEW_PARTICIPANT, notification)
+            pusher.trigger(room_name, PusherEvent.NEW_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'New participant to the room is created',
                 'data': RoomParticipantSchema().dump(new_participant).data
             }), 200
+        if checked_participant.status == RoomParticipantStatus.DELETED:
+            checked_participant.status = RoomParticipantStatus.ACTIVE
+            db.session.commit()
+
+            notification = {
+                "name": user.name,
+                "user_id": user.id,
+                "room": room_id
+            }
+
+            pusher.trigger(room_name, PusherEvent.NEW_PARTICIPANT, notification)
+
+            return jsonify({
+                'message': 'Participant is re-added to the room',
+                'data': RoomParticipantSchema().dump(checked_participant).data
+            }), 200
         return jsonify({
             'message': 'Already participated'
         }), StatusCode.FORBIDDEN
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+    raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
 
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['DELETE'])
 @access_token_required
 def delete_participant_in_room(room_id, **kwargs):
     user = kwargs['user']
-    if User.get_user_by_email(user.email) is not None: 
+    room = db.session.query(Room).filter_by(id=room_id).first()
+    if User.get_user_by_email(user.email) is not None and room is not None:
         deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
-        room = db.session.query(Room).filter_by(id=room_id).first()
-
         if deleted_participant.status == RoomParticipantStatus.ACTIVE: 
             deleted_participant.status = RoomParticipantStatus.DELETED
             db.session.commit()
 
+            room_name = 'presence-room-' + str(room_id)
+
             notification = {
-                "name": deleted_participant.name, 
+                "name": user.name,
                 "user_id": user.id,
                 "room": room_id
             }
 
-            pusher.trigger(room.name, PusherEvent.DELETE_PARTICIPANT, notification)
+            pusher.trigger(room_name, PusherEvent.DELETE_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'Participant deleted successfully'
             }), 200 
         return jsonify({
             'message': 'Failed to delete participant'
-        }), 200
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+        }), StatusCode.BAD_REQUEST
+    raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
