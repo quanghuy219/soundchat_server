@@ -29,7 +29,7 @@ def get_next_song(user, args):
         .filter(RoomParticipant.user_id == user.id) \
         .one_or_none()
 
-    if not room_participant:
+    if room_participant.status is not ParticipantStatus.IN:
         raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
 
     song = Media.query\
