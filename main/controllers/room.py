@@ -11,7 +11,7 @@ from main.models.room_playlist import RoomPlaylist
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import RoomParticipantStatus, PusherEvent
+from main.enums import ParticipantStatus, PusherEvent, RoomStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher
 
@@ -60,14 +60,14 @@ def get_room_info(room_id, **kwargs):
 def create_room(**kwargs):
     args = kwargs['args']
     user = kwargs['user']
-    if User.get_user_by_email(user.email) is not None:
+    if user is not None:
         if db.session.query(Room).filter_by(id=args['id']).first() is None:
-            new_room = Room(**args, creator_id=user.id)
+            new_room = Room(**args, creator_id=user.id, current_media=None, media_time=None, status=RoomStatus.ACTIVE)
             db.session.add(new_room)
 
             # when creator creates the room, he automatically joins that room 
-            creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id,
-                                                  status=RoomParticipantStatus.ACTIVE)
+            creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=ParticipantStatus.IN)
+            user.current_room = new_room.id
             db.session.add(creator_participant)
             db.session.commit()
             
@@ -87,10 +87,11 @@ def add_participant_to_room(room_id, **kwargs):
     user = kwargs['user']
     room_name = 'presence-room-' + str(room_id)
     room = db.session.query(Room).filter_by(id=room_id).first()
-    if User.get_user_by_email(user.email) is not None and room is not None:
+    if user is not None and room is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
-            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
+            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=ParticipantStatus.IN)
+            user.current_room = room_id
             db.session.add(new_participant)
             db.session.commit()
 
@@ -106,8 +107,9 @@ def add_participant_to_room(room_id, **kwargs):
                 'message': 'New participant to the room is created',
                 'data': RoomParticipantSchema().dump(new_participant).data
             }), 200
-        if checked_participant.status == RoomParticipantStatus.DELETED:
-            checked_participant.status = RoomParticipantStatus.ACTIVE
+        if checked_participant.status == ParticipantStatus.OUT or checked_participant.status == ParticipantStatus.DELETED:
+            checked_participant.status = ParticipantStatus.IN
+            user.current_room = room_id
             db.session.commit()
 
             notification = {
@@ -121,7 +123,7 @@ def add_participant_to_room(room_id, **kwargs):
             return jsonify({
                 'message': 'Participant is re-added to the room',
                 'data': RoomParticipantSchema().dump(checked_participant).data
-            }), 200
+            }), 200    
         return jsonify({
             'message': 'Already participated'
         }), StatusCode.FORBIDDEN
@@ -133,10 +135,11 @@ def add_participant_to_room(room_id, **kwargs):
 def delete_participant_in_room(room_id, **kwargs):
     user = kwargs['user']
     room = db.session.query(Room).filter_by(id=room_id).first()
-    if User.get_user_by_email(user.email) is not None and room is not None:
+    if user is not None and room is not None:
         deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
-        if deleted_participant.status == RoomParticipantStatus.ACTIVE: 
-            deleted_participant.status = RoomParticipantStatus.DELETED
+        if deleted_participant.status == ParticipantStatus.IN: 
+            deleted_participant.status = ParticipantStatus.DELETED
+            user.current_room = None
             db.session.commit()
 
             room_name = 'presence-room-' + str(room_id)
@@ -154,5 +157,35 @@ def delete_participant_in_room(room_id, **kwargs):
             }), 200 
         return jsonify({
             'message': 'Failed to delete participant'
+        }), StatusCode.BAD_REQUEST
+    raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
+
+@app.route('/api/rooms/<int:room_id>/users', methods=['PUT'])
+@access_token_required
+def participant_exit_room(room_id, **kwargs):
+    user = kwargs['user']
+    room = db.session.query(Room).filter_by(id=room_id).first()
+    if user is not None and room is not None:
+        participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
+        if participant.status == ParticipantStatus.IN: 
+            participant.status = ParticipantStatus.OUT
+            user.current_room = None    
+            db.session.commit()
+
+            room_name = 'presence-room-' + str(room_id)
+
+            notification = {
+                "name": user.name,
+                "user_id": user.id,
+                "room": room_id
+            }
+
+            pusher.trigger(room_name, PusherEvent.EXIT_PARTICIPANT, notification)
+
+            return jsonify({
+                'message': 'Participant exited successfully'
+            }), 200 
+        return jsonify({
+            'message': 'participant failed to exit'
         }), StatusCode.BAD_REQUEST
     raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')

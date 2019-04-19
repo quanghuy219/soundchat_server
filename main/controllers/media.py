@@ -1,6 +1,8 @@
-from flask import jsonify 
+from flask import jsonify
+from sqlalchemy import func
+from marshmallow import Schema, fields, validate
 
-from main import db, app 
+from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required
 from main.models.room import Room
@@ -8,9 +10,38 @@ from main.models.room_paticipant import RoomParticipant
 from main.models.user import User
 from main.models.media import Media
 from main.models.vote import Vote
-from main.schemas.vote import VoteSchema
 from main.schemas.media import MediaSchema
-from main.enums import MediaStatus, VoteStatus
+
+from main.enums import MediaStatus, VoteStatus, MediaActions, ParticipantStatus
+
+
+class NextSongSchema(Schema):
+    room_id = fields.Integer(required=True)
+
+
+@app.route('/api/media', methods=['GET'])
+@access_token_required
+@parse_request_args(NextSongSchema())
+def get_next_song(user, args):
+    room_id = args.get('room_id')
+    room_participant = RoomParticipant.query \
+        .filter(RoomParticipant.room_id == room_id) \
+        .filter(RoomParticipant.user_id == user.id) \
+        .one_or_none()
+
+    if not room_participant:
+        raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
+
+    song = Media.query\
+            .filter(Media.room_id == room_id) \
+            .filter(Media.status == MediaStatus.VOTING) \
+            .filter(func.max(Media.total_vote)) \
+            .first()
+    res = {
+        'message': 'Get next song successfully',
+        'data': MediaSchema.dumps(song).data
+    }
+    return jsonify(res)
 
 
 # add new media in the room 
@@ -23,14 +54,7 @@ def add_media(**kwargs):
     if User.get_user_by_email(user.email) is not None: 
         room = db.session.query(Room).filter_by(id=args['room_id'])
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=args['room_id']).first()
-        if participant is not None: # check whether user is in the room or not to add media
-            # check if the url is duplicated 
-            all_media = db.session.query(Media).all()
-            for media in all_media: 
-                if media.url == args['url']: 
-                    return jsonify({
-                        'message': 'duplicated url'
-                    }), StatusCode.FORBIDDEN
+        if participant.status == ParticipantStatus.IN: # check whether user is in the room or not to add media
             new_media = Media(**args, creator_id=user.id, total_vote=0, status=MediaStatus.ACTIVE)
             db.session.add(new_media)
             db.session.commit()
@@ -50,9 +74,9 @@ def add_media(**kwargs):
 def up_vote(media_id, **kwargs):
     user = kwargs['user']
     media = db.session.query(Media).filter_by(id=media_id).first()
-    if media is not None: 
+    if media.status == MediaStatus.ACTIVE: 
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=media.room_id).first()
-        if participant: # user is in the room that has that media to be able to vote
+        if participant.status==ParticipantStatus.IN: # user is in the room that has that media to be able to vote
             vote = db.session.query(Vote).filter_by(user_id=user.id, media_id=media.id).first()
             if vote is None:
                 new_vote = Vote(user_id=user.id, media_id=media.id, status=VoteStatus.UPVOTE)
@@ -84,9 +108,9 @@ def up_vote(media_id, **kwargs):
 def down_vote(media_id, **kwargs):
     user = kwargs['user']
     media = db.session.query(Media).filter_by(id=media_id).first()
-    if media is not None: 
+    if media.status == MediaStatus.ACTIVE: 
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=media.room_id).first()
-        if participant: # user is in the room that has that media to be able to vote
+        if participant.status == ParticipantStatus.IN: # user is in the room that has that media to be able to vote
             vote = db.session.query(Vote).filter_by(user_id=user.id, media_id=media.id).first()
             if vote is None:
                 raise Error(StatusCode.FORBIDDEN, 'You have to upvote first in order to downvote')
@@ -118,9 +142,3 @@ def delete_video(media_id, **kwargs):
                 'message': 'deleted successfully'
             }), 200
     raise Error(StatusCode.BAD_REQUEST, 'Cannot delete media')
-
-
-
-
-
-

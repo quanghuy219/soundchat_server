@@ -10,7 +10,6 @@ class RoomParticipant(db.Model, TimestampMixin):
     user = db.relationship('User')
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), primary_key=True)
     room = db.relationship('Room', cascade='delete,all')
-    media_time = db.Column(db.Integer)
     status = db.Column(db.String(50))
 
     def __init__(self, *args, **kwargs):
