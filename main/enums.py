@@ -10,6 +10,7 @@ class PusherEvent:
     PLAY = 'play'
     PAUSE = 'pause'
     SEEK = 'seek'
+    PROCEED = 'proceed'
 
 
 class RoomParticipantStatus: 
@@ -27,22 +28,12 @@ class VoteStatus:
     DOWNVOTE = 'downvote'
 
 
-class MediaStatus: 
+class MediaStatus:
     ACTIVE = 'active'
     DELETED = 'deleted'
     VOTING = 'voting'
     PLAYING = 'playing'
     FINISHED = 'finished'
-
-
-class MediaAction:
-    PLAY = 'play'
-    PAUSE = 'pause'
-    SEEK = 'seek'
-
-
-MediaActions = [
-    MediaAction.PLAY,
-    MediaAction.PAUSE,
-    MediaAction.SEEK
-]
+    PAUSING = 'pausing'
+    READY = 'ready'
+    SEEKING = 'seeking'

@@ -1,6 +1,8 @@
+import datetime
+
 from flask import jsonify
 from sqlalchemy import func
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, validates_schema
 
 from main import db, app
 from main.errors import Error, StatusCode
@@ -11,18 +13,22 @@ from main.models.user import User
 from main.models.media import Media
 from main.models.vote import Vote
 from main.schemas.media import MediaSchema
-from main.enums import MediaStatus, VoteStatus, MediaActions
+from main.libs import pusher
+from main.enums import MediaStatus, VoteStatus, PusherEvent
 
 
-class NextSongSchema(Schema):
+class SongSchema(Schema):
     room_id = fields.Integer(required=True)
+    type = fields.String(required=True, validate=validate.OneOf(['next', 'current']))
 
 
 @app.route('/api/media', methods=['GET'])
 @access_token_required
-@parse_request_args(NextSongSchema())
-def get_next_song(user, args):
+@parse_request_args(SongSchema())
+def get_song(user, args):
     room_id = args.get('room_id')
+    type = args['type']
+
     room_participant = RoomParticipant.query \
         .filter(RoomParticipant.room_id == room_id) \
         .filter(RoomParticipant.user_id == user.id) \
@@ -31,16 +37,147 @@ def get_next_song(user, args):
     if not room_participant:
         raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
 
-    song = Media.query\
-            .filter(Media.room_id == room_id) \
-            .filter(Media.status == MediaStatus.VOTING) \
-            .filter(func.max(Media.total_vote)) \
-            .first()
-    res = {
-        'message': 'Get next song successfully',
-        'data': MediaSchema.dumps(song).data
-    }
+    if type == 'next':
+        song = get_next_song(room_id)
+        res = {
+            'message': 'Get next song successfully',
+            'data': MediaSchema().dumps(song).data
+        }
+    elif type == 'current':
+        song = get_current_song(room_id)
+        res = {
+            'message': 'Get current song successfully',
+            'data': MediaSchema().dumps(song).data
+        }
+
     return jsonify(res)
+
+
+def get_next_song(room_id):
+    next_song = Media.query \
+        .filter(Media.room_id == room_id) \
+        .filter(Media.status == MediaStatus.VOTING) \
+        .filter(func.max(Media.total_vote)) \
+        .first()
+
+    return next_song
+
+
+def get_current_song(room_id):
+    # Calculate time difference since last update
+    room = Room.query.filter(Room.id == room_id).one_or_none()
+    if room.status == MediaStatus.PAUSING:
+        current_media_time = room.media_time
+    else:
+        time_diff = (datetime.datetime.utcnow() - room.updated).total_seconds()
+        current_media_time = room.media_time + time_diff
+
+    current_song = Media.query.filter(Media.id == room.current_media).one_or_none()
+    setattr(current_song, 'media_time', current_media_time)
+    return current_song
+
+
+class MediaStatusUpdateSchema(Schema):
+    room_id = fields.Integer(required=True)
+    status = fields.String(required=True, validate=validate.OneOf([MediaStatus.READY, MediaStatus.SEEKING,
+                                                                  MediaStatus.PAUSING, MediaStatus.PLAYING,
+                                                                  MediaStatus.FINISHED]))
+    media_time = fields.Float(required=True)
+
+
+@app.route('/api/media/<int:media_id>', methods=['PUT'])
+@access_token_required
+@parse_request_args(MediaStatusUpdateSchema())
+def update_media_status(media_id, user, args):
+    room_id = args['room_id']
+    status = args['status']
+
+    room = Room.query.filter(Room.id == room_id).one()
+
+    if status == MediaStatus.READY:
+        # Only play video when all members are ready
+        room_member = RoomParticipant.query.filter(RoomParticipant.room_id == room_id) \
+                                            .filter(RoomParticipant.user_id == user.id) \
+                                            .one()
+        room_member.status = MediaStatus.READY
+        res = {
+            'message': 'Waiting for other members to be ready',
+        }
+        if _check_all_user_have_same_status(room_id, MediaStatus.READY):
+            current_song = get_current_song(room_id)
+            pusher.trigger(room_id, PusherEvent.PLAY, MediaSchema().dump(current_song).data)
+            room.status = MediaStatus.PLAYING
+
+    if status == MediaStatus.PLAYING:
+        # Force all members to play video
+        room.media_time = args['media_time']
+        room.status = status
+        _set_status_for_all_online_user(room_id, MediaStatus.PLAYING)
+        pusher.trigger(room_id, PusherEvent.PLAY)
+        res = {
+            'message': 'Play video'
+        }
+    if status == MediaStatus.PAUSING:
+        # Force all members to pause
+        room.media_time = args['media_time']
+        room.status = status
+        _set_status_for_all_online_user(room_id, MediaStatus.PAUSING)
+        pusher.trigger(room_id, PusherEvent.PAUSE)
+        res = {
+            'message': 'Pause video'
+        }
+    if status == MediaStatus.SEEKING:
+        # If someone seek videos, pause video at that time, and wait for all members to be ready
+        room.media_time = args['media_time']
+        room.status = MediaStatus.PAUSING
+        _set_status_for_all_online_user(room_id, MediaStatus.PAUSING)
+        pusher.trigger(room_id, PusherEvent.SEEK, {'media_time': args['media_time']})
+        res = {
+            'message': 'Seek video'
+        }
+    if status == MediaStatus.FINISHED:
+        room.media_time = args['media_time']
+        # If all members are finished their current video, then choose next song to play
+        if _check_all_user_have_same_status(room_id, MediaStatus.FINISHED):
+            next_media = get_next_song(room_id)
+            room.current_media = next_media.id
+            room.media_time = 0
+            room.status = MediaStatus.PAUSING
+            pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(next_media).data)
+        res = {
+            'message': 'Wait for other member to finish their video'
+        }
+
+    db.session.commit()
+    return jsonify(res)
+
+
+def _check_all_user_have_same_status(room_id, status):
+    not_ready_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
+                        .filter(RoomParticipant.room_id == room_id) \
+                        .filter(User.online == 1) \
+                        .filter(User.current_room == room_id) \
+                        .filter(RoomParticipant.status != status) \
+                        .all()
+
+    if not len(not_ready_users):
+        return True
+
+    return False
+
+
+def _set_status_for_all_online_user(room_id, status):
+    online_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
+                        .filter(RoomParticipant.room_id == room_id) \
+                        .filter(User.online == 1) \
+                        .filter(User.current_room == room_id) \
+                        .filter(RoomParticipant.status != status) \
+                        .all()
+
+    for user in online_users:
+        user.status = status
+
+    db.session.commit()
 
 
 # add new media in the room 

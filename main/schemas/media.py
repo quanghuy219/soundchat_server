@@ -7,6 +7,8 @@ class MediaSchema(Schema):
     room_id = fields.Int(required=True)
     url = fields.URL(required=True)
     total_vote = fields.Int()
+
+    media_time = fields.Float()
     status = fields.String()
 
 

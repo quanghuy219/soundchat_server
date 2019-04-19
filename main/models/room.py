@@ -9,7 +9,7 @@ class Room(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     current_media = db.Column(db.Integer, db.ForeignKey(Media.id), nullable=True)
-    media_time = db.Column(db.Integer, nullable=True)
+    media_time = db.Column(db.Float, nullable=True)
     status = db.Column(db.String(50))
 
     def __init__(self, *args, **kwargs):

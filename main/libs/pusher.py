@@ -35,7 +35,7 @@ def _trigger_pusher(channel_name, event, data):
         logging.exception('Pusher exception occurs')
 
 
-def trigger(room_id, event, data):
+def trigger(room_id, event, data={}):
     if os.getenv('FLASK_ENV') == 'test':
         return _trigger_pusher(parse_channel_name(room_id), event, data)
 
