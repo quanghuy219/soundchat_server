@@ -284,6 +284,9 @@ def update_media_status(room_id, user, args):
         room.media_time = args['media_time']
         # If all members are finished their current video, then choose next song to play
         if _check_all_user_have_same_status(room_id, MediaStatus.FINISHED):
+            current_song = Media.query.filter(Media.id == room.current_media).one()
+            current_song.status = MediaStatus.FINISHED
+
             next_media = get_next_song(room_id)
             room.current_media = next_media.id
             room.media_time = 0
