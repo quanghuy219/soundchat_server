@@ -11,7 +11,6 @@ from main.models.vote import Vote
 from main.schemas.vote import VoteSchema
 from main.schemas.media import MediaSchema
 from main.enums import MediaStatus, VoteStatus
-# from main.libs.pusher import _trigger_pusher
 
 
 # add new media in the room 
@@ -62,8 +61,8 @@ def up_vote(media_id, **kwargs):
                 db.session.commit()
                 return jsonify({
                     'message': 'upvoted successfully', 
-                    'current voting media': media.id, 
-                    'total vote': media.total_vote  
+                    'current_media': media.id, 
+                    'total_vote': media.total_vote  
                 })
             if vote.status == VoteStatus.UPVOTE:
                 raise Error(StatusCode.FORBIDDEN, 'Already upvoted')
@@ -73,8 +72,8 @@ def up_vote(media_id, **kwargs):
                 db.session.commit()
                 return jsonify({
                     'message': 'upvoted successfully', 
-                    'current voting media': media.id, 
-                    'total vote': media.total_vote  
+                    'current_media': media.id, 
+                    'total_vote': media.total_vote  
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')
@@ -99,8 +98,8 @@ def down_vote(media_id, **kwargs):
                 db.session.commit()
                 return jsonify({
                     'message': 'downvoted successfully', 
-                    'current voting media': media.id, 
-                    'total vote': media.total_vote  
+                    'current_media': media.id, 
+                    'total_vote': media.total_vote  
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')
