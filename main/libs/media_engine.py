@@ -3,10 +3,9 @@ import datetime
 from sqlalchemy import desc
 
 from main.models.room_paticipant import RoomParticipant
-from main.models.user import User
 from main.models.media import Media
 from main.models.room import Room
-from main.enums import RoomParticipantStatus, MediaStatus
+from main.enums import MediaStatus, ParticipantStatus
 from main import db
 
 
@@ -38,10 +37,9 @@ def get_current_media(room_id):
 
 
 def check_all_user_have_same_media_status(room_id, status):
-    not_ready_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
+    not_ready_users = RoomParticipant.query \
                         .filter(RoomParticipant.room_id == room_id) \
-                        .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.IN) \
+                        .filter(RoomParticipant.status == ParticipantStatus.IN) \
                         .filter(RoomParticipant.media_status != status) \
                         .all()
 
@@ -52,10 +50,9 @@ def check_all_user_have_same_media_status(room_id, status):
 
 
 def set_online_users_media_status(room_id, status):
-    online_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
+    online_users = RoomParticipant.query \
                         .filter(RoomParticipant.room_id == room_id) \
-                        .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.IN) \
+                        .filter(RoomParticipant.status == ParticipantStatus.IN) \
                         .all()
 
     if not len(online_users):
