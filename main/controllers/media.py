@@ -18,32 +18,28 @@ from main.enums import MediaStatus, VoteStatus
 @app.route('/api/media', methods=['POST'])
 @parse_request_args(MediaSchema())
 @access_token_required
-def add_media(**kwargs):
-    args = kwargs['args']
-    user = kwargs['user']
-    if User.get_user_by_email(user.email) is not None: 
-        room = db.session.query(Room).filter_by(id=args['room_id'])
-        participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=args['room_id']).first()
-        if participant is not None: # check whether user is in the room or not to add media
-            # check if the url is duplicated 
-            all_media = db.session.query(Media).all()
-            for media in all_media: 
-                if media.url == args['url']: 
-                    return jsonify({
-                        'message': 'duplicated url'
-                    }), StatusCode.FORBIDDEN
-            new_media = Media(**args, creator_id=user.id, total_vote=0, status=MediaStatus.ACTIVE)
-            db.session.add(new_media)
-            db.session.commit()
+def add_media(user, args):
+    room = db.session.query(Room).filter_by(id=args['room_id'])
+    participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=args['room_id']).first()
+    if participant is not None:  # check whether user is in the room or not to add media
+        # check if the url is duplicated
+        all_media = db.session.query(Media).all()
+        for media in all_media:
+            if media.url == args['url']:
+                return jsonify({
+                    'message': 'duplicated url'
+                }), StatusCode.FORBIDDEN
+        new_media = Media(**args, creator_id=user.id, total_vote=0, status=MediaStatus.ACTIVE)
+        db.session.add(new_media)
+        db.session.commit()
 
-            return jsonify({
-                'message': 'media added to room successfully',
-                'media_url': new_media.url,
-                'room_id': new_media.room_id,
-                'media_id': new_media.id
-            })
-        raise Error(StatusCode.FORBIDDEN, 'Not allow to add media')
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+        return jsonify({
+            'message': 'media added to room successfully',
+            'media_url': new_media.url,
+            'room_id': new_media.room_id,
+            'media_id': new_media.id
+        })
+    raise Error(StatusCode.FORBIDDEN, 'Not allow to add media')
 
 
 @app.route('/api/media/<int:media_id>/vote', methods=['POST'])
