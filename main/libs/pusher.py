@@ -6,9 +6,19 @@ from main.libs.tasks import celery_app
 from main.cfg import config
 
 
-def parse_channel_name(room_id):
+def create_channel_name(room_id):
     """Channel name format: presence-room-<room_id>-<namespace>"""
     return "presence-room-{}-{}".format(room_id, config.PUSHER_NAMESPACE)
+
+
+def parse_channel_name(channel_name):
+    """Read room id from channel name"""
+    names = channel_name.split('-')
+    if len(names) != 4:
+        logging.warning('Invalid pusher channel name')
+        return None
+
+    return names[2]
 
 
 def authenticate(request, account):
@@ -37,6 +47,6 @@ def _trigger_pusher(channel_name, event, data):
 
 def trigger(room_id, event, data={}):
     if os.getenv('FLASK_ENV') == 'test':
-        return _trigger_pusher(parse_channel_name(room_id), event, data)
+        return _trigger_pusher(create_channel_name(room_id), event, data)
 
-    return _trigger_pusher.delay(parse_channel_name(room_id), event, data)
+    return _trigger_pusher.delay(create_channel_name(room_id), event, data)
