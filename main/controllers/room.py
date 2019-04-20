@@ -17,7 +17,7 @@ from main.schemas.media import MediaSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import RoomParticipantStatus, PusherEvent, MediaStatus
+from main.enums import RoomParticipantStatus, PusherEvent, MediaStatus, RoomStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher
 
@@ -61,39 +61,28 @@ def get_room_info(room_id, **kwargs):
 
 
 @app.route('/api/rooms', methods=['POST'])
-@parse_request_args(RoomSchema())
 @access_token_required
-def create_room(**kwargs):
-    args = kwargs['args']
-    user = kwargs['user']
-    if User.get_user_by_email(user.email) is not None:
-        if db.session.query(Room).filter_by(id=args['id']).first() is None:
-            new_room = Room(**args, creator_id=user.id)
-            db.session.add(new_room)
+def create_room(user):
+    new_room = Room(creator_id=user.id, status=RoomStatus.ACTIVE)
+    db.session.add(new_room)
 
-            # when creator creates the room, he automatically joins that room 
-            creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id,
-                                                  status=RoomParticipantStatus.ACTIVE)
-            db.session.add(creator_participant)
-            db.session.commit()
-            
-            return jsonify({
-                'message': 'New room is created',
-                'data': RoomSchema().dump(new_room).data
-            }), 200
-        return jsonify({
-            'message': 'Room ID existed'
-        })
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+    # When creator creates the room, he automatically joins that room
+    creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+    db.session.add(creator_participant)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'New room is created',
+        'data': RoomSchema().dump(new_room).data
+    }), 200
     
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
 @access_token_required
 def add_participant_to_room(room_id, **kwargs):
     user = kwargs['user']
-    room_name = 'presence-room-' + str(room_id)
     room = db.session.query(Room).filter_by(id=room_id).first()
-    if User.get_user_by_email(user.email) is not None and room is not None:
+    if room is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
             new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
@@ -106,7 +95,7 @@ def add_participant_to_room(room_id, **kwargs):
                 "room": room_id
             }
 
-            pusher.trigger(room_name, PusherEvent.NEW_PARTICIPANT, notification)
+            pusher.trigger(room_id, PusherEvent.NEW_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'New participant to the room is created',
