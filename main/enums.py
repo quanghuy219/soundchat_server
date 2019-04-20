@@ -7,6 +7,7 @@ class PusherEvent:
     NEW_MESSAGE = 'new_message'
     NEW_PARTICIPANT = 'new_participant'
     DELETE_PARTICIPANT = 'delete_participant'
+    NEW_MEDIA = 'new_media'
     PLAY = 'play'
     PAUSE = 'pause'
     SEEK = 'seek'

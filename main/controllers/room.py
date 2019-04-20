@@ -1,7 +1,4 @@
-import datetime
-
 from flask import jsonify
-from sqlalchemy import desc
 from marshmallow import Schema, fields, validate
 
 from main import db, app 
@@ -20,6 +17,7 @@ from main.schemas.room_playlist import RoomPlaylistSchema
 from main.enums import RoomParticipantStatus, PusherEvent, MediaStatus, RoomStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher
+from main.libs import media_engine
 
 
 @app.route('/api/rooms', methods=['GET'])
@@ -174,7 +172,7 @@ def get_song(room_id, user, args):
         raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
 
     if type == 'next':
-        song = get_next_media(room_id)
+        song = media_engine.get_next_media(room_id)
         res = {
             'message': 'Get next song successfully',
             'data': MediaSchema().dumps(song).data
@@ -183,7 +181,7 @@ def get_song(room_id, user, args):
             res['message'] = 'There is no available next song'
 
     elif type == 'current':
-        song = get_current_media(room_id)
+        song = media_engine.get_current_media(room_id)
         res = {
             'message': 'Get current song successfully',
             'data': MediaSchema().dumps(song).data
@@ -192,33 +190,6 @@ def get_song(room_id, user, args):
             res['message'] = 'There is no available song'
 
     return jsonify(res)
-
-
-def get_next_media(room_id):
-    next_song = Media.query \
-        .filter(Media.room_id == room_id) \
-        .filter(Media.status == MediaStatus.VOTING) \
-        .order_by(desc(Media.total_vote)) \
-        .first()
-
-    return next_song
-
-
-def get_current_media(room_id):
-    # Calculate time difference since last update
-    room = Room.query.filter(Room.id == room_id).one_or_none()
-    if room.current_media is None:
-        return None
-
-    if room.status == MediaStatus.PAUSING:
-        current_media_time = room.media_time
-    else:
-        time_diff = (datetime.datetime.utcnow() - room.updated).total_seconds()
-        current_media_time = room.media_time + time_diff
-
-    current_song = Media.query.filter(Media.id == room.current_media).one_or_none()
-    setattr(current_song, 'media_time', current_media_time)
-    return current_song
 
 
 class MediaStatusUpdateSchema(Schema):
@@ -245,17 +216,17 @@ def update_media_status(room_id, user, args):
         res = {
             'message': 'Waiting for other members to be ready',
         }
-        if _check_all_user_have_same_media_status(room_id, MediaStatus.READY):
-            current_song = get_current_media(room_id)
+        if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.READY):
+            current_song = media_engine.get_current_media(room_id)
             pusher.trigger(room_id, PusherEvent.PLAY, MediaSchema().dump(current_song).data)
-            _set_online_users_media_status(room_id, MediaStatus.PLAYING)
+            media_engine.set_online_users_media_status(room_id, MediaStatus.PLAYING)
             room.status = MediaStatus.PLAYING
 
     if status == MediaStatus.PLAYING:
         # Force all members to play video
         room.media_time = args['media_time']
         room.status = status
-        _set_online_users_media_status(room_id, MediaStatus.PLAYING)
+        media_engine.set_online_users_media_status(room_id, MediaStatus.PLAYING)
         pusher.trigger(room_id, PusherEvent.PLAY)
         res = {
             'message': 'Play video'
@@ -264,7 +235,7 @@ def update_media_status(room_id, user, args):
         # Force all members to pause
         room.media_time = args['media_time']
         room.status = status
-        _set_online_users_media_status(room_id, MediaStatus.PAUSING)
+        media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
         pusher.trigger(room_id, PusherEvent.PAUSE)
         res = {
             'message': 'Pause video'
@@ -273,7 +244,7 @@ def update_media_status(room_id, user, args):
         # If someone seek videos, pause video at that time, and wait for all members to be ready
         room.media_time = args['media_time']
         room.status = MediaStatus.PAUSING
-        _set_online_users_media_status(room_id, MediaStatus.PAUSING)
+        media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
         pusher.trigger(room_id, PusherEvent.SEEK, {'media_time': args['media_time']})
         res = {
             'message': 'Seek video'
@@ -287,13 +258,13 @@ def update_media_status(room_id, user, args):
         room_member.media_status = MediaStatus.FINISHED
 
         # If all members are finished their current video, then choose next song to play
-        if _check_all_user_have_same_media_status(room_id, MediaStatus.FINISHED):
+        if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.FINISHED):
             current_song = Media.query.filter(Media.id == room.current_media).one()
             current_song.status = MediaStatus.FINISHED
 
-            next_media = get_next_media(room_id)
+            next_media = media_engine.get_next_media(room_id)
             room.status = MediaStatus.PAUSING
-            _set_online_users_media_status(room_id, MediaStatus.PAUSING)
+            media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
             if next_media:
                 room.current_media = next_media.id
                 room.media_time = 0
@@ -309,31 +280,4 @@ def update_media_status(room_id, user, args):
     return jsonify(res)
 
 
-def _check_all_user_have_same_media_status(room_id, status):
-    not_ready_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
-                        .filter(RoomParticipant.room_id == room_id) \
-                        .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.ACTIVE) \
-                        .filter(RoomParticipant.media_status != status) \
-                        .all()
 
-    if not len(not_ready_users):
-        return True
-
-    return False
-
-
-def _set_online_users_media_status(room_id, status):
-    online_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
-                        .filter(RoomParticipant.room_id == room_id) \
-                        .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.ACTIVE) \
-                        .all()
-
-    if not len(online_users):
-        return
-
-    for user in online_users:
-        user.media_status = status
-
-    db.session.commit()
