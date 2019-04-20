@@ -1,7 +1,7 @@
 import datetime
 
 from flask import jsonify
-from sqlalchemy import func
+from sqlalchemy import desc
 from marshmallow import Schema, fields, validate
 
 from main import db, app 
@@ -172,7 +172,6 @@ class SongSchema(Schema):
 @access_token_required
 @parse_request_args(SongSchema())
 def get_song(room_id, user, args):
-    room_id = args.get('room_id')
     type = args['type']
 
     room_participant = RoomParticipant.query \
@@ -184,34 +183,42 @@ def get_song(room_id, user, args):
         raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
 
     if type == 'next':
-        song = get_next_song(room_id)
+        song = get_next_media(room_id)
         res = {
             'message': 'Get next song successfully',
             'data': MediaSchema().dumps(song).data
         }
+        if song is None:
+            res['message'] = 'There is no available next song'
+
     elif type == 'current':
-        song = get_current_song(room_id)
+        song = get_current_media(room_id)
         res = {
             'message': 'Get current song successfully',
             'data': MediaSchema().dumps(song).data
         }
+        if song is None:
+            res['message'] = 'There is no available song'
 
     return jsonify(res)
 
 
-def get_next_song(room_id):
+def get_next_media(room_id):
     next_song = Media.query \
         .filter(Media.room_id == room_id) \
         .filter(Media.status == MediaStatus.VOTING) \
-        .filter(func.max(Media.total_vote)) \
+        .order_by(desc(Media.total_vote)) \
         .first()
 
     return next_song
 
 
-def get_current_song(room_id):
+def get_current_media(room_id):
     # Calculate time difference since last update
     room = Room.query.filter(Room.id == room_id).one_or_none()
+    if room.current_media is None:
+        return None
+
     if room.status == MediaStatus.PAUSING:
         current_media_time = room.media_time
     else:
@@ -249,7 +256,7 @@ def update_media_status(room_id, user, args):
             'message': 'Waiting for other members to be ready',
         }
         if _check_all_user_have_same_status(room_id, MediaStatus.READY):
-            current_song = get_current_song(room_id)
+            current_song = get_current_media(room_id)
             pusher.trigger(room_id, PusherEvent.PLAY, MediaSchema().dump(current_song).data)
             room.status = MediaStatus.PLAYING
 
@@ -287,11 +294,15 @@ def update_media_status(room_id, user, args):
             current_song = Media.query.filter(Media.id == room.current_media).one()
             current_song.status = MediaStatus.FINISHED
 
-            next_media = get_next_song(room_id)
-            room.current_media = next_media.id
-            room.media_time = 0
+            next_media = get_next_media(room_id)
             room.status = MediaStatus.PAUSING
-            pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(next_media).data)
+            if next_media:
+                room.current_media = next_media.id
+                room.media_time = 0
+                pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(next_media).data)
+            else:
+                room.current_media = None
+                room.media_time = 0
         res = {
             'message': 'Wait for other member to finish their video'
         }
