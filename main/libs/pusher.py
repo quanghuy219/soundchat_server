@@ -50,3 +50,12 @@ def trigger(room_id, event, data={}):
         return _trigger_pusher(create_channel_name(room_id), event, data)
 
     return _trigger_pusher.delay(create_channel_name(room_id), event, data)
+
+
+def read_pusher_webhook(request):
+    webhook = pusher_client.validate_webhook(
+        key=request.headers.get('X-Pusher-Key'),
+        signature=request.headers.get('X-Pusher-Signature'),
+        body=request.data
+    )
+    return webhook
