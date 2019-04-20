@@ -12,7 +12,6 @@ class User(db.Model, TimestampMixin):
     password_hash = db.Column(db.String(64), nullable=False)
     password_salt = db.Column(db.String(16))
     online = db.Column(db.Integer)
-    current_room = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=True)
     status = db.Column(db.String(50))
 
     def __init__(self, *args, **kwargs):

@@ -15,6 +15,7 @@ class PusherEvent:
 
 class RoomParticipantStatus: 
     ACTIVE = 'active'
+    DEACTIVATED = 'deactivated'
     DELETED = 'deleted'
 
 
