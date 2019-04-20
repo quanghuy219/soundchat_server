@@ -8,6 +8,8 @@ class PusherEvent:
     NEW_PARTICIPANT = 'new_participant'
     EXIT_PARTICIPANT = 'exit_participant'
     DELETE_PARTICIPANT = 'delete_participant'
+    UP_VOTE = 'up_vote'
+    DOWN_VOTE = 'down_vote'
     NEW_MEDIA = 'new_media'
     PLAY = 'play'
     PAUSE = 'pause'
@@ -15,7 +17,7 @@ class PusherEvent:
     PROCEED = 'proceed'
 
 
-class ParticipantStatus:
+class ParticipantStatus: 
     IN = 'in'
     OUT = 'out'
     DELETED = 'deleted'

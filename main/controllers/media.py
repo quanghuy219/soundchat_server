@@ -2,7 +2,7 @@ from flask import jsonify
 from sqlalchemy import func
 from marshmallow import Schema, fields, validate
 
-from main import db, app 
+from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required
 from main.models.room import Room
@@ -10,8 +10,7 @@ from main.models.room_paticipant import RoomParticipant
 from main.models.media import Media
 from main.models.vote import Vote
 from main.schemas.media import MediaSchema
-from main.libs import media_engine
-from main.libs import pusher
+from main.libs import media_engine, pusher
 from main.enums import MediaStatus, VoteStatus, ParticipantStatus, PusherEvent
 
 
@@ -32,11 +31,11 @@ def get_next_song(user, args):
     if room_participant.status is not ParticipantStatus.IN:
         raise Error(StatusCode.FORBIDDEN, message='You are not a member of this room')
 
-    song = Media.query\
-            .filter(Media.room_id == room_id) \
-            .filter(Media.status == MediaStatus.VOTING) \
-            .filter(func.max(Media.total_vote)) \
-            .first()
+    song = Media.query \
+        .filter(Media.room_id == room_id) \
+        .filter(Media.status == MediaStatus.VOTING) \
+        .filter(func.max(Media.total_vote)) \
+        .first()
     res = {
         'message': 'Get next song successfully',
         'data': MediaSchema.dumps(song).data
@@ -87,28 +86,47 @@ def up_vote(media_id, **kwargs):
     media = db.session.query(Media).filter_by(id=media_id).first()
     if media.status == MediaStatus.ACTIVE:
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=media.room_id).first()
-        if participant.status==ParticipantStatus.IN: # user is in the room that has that media to be able to vote
+        if participant.status == ParticipantStatus.IN:
+            # user is in the room that has that media to be able to vote
             vote = db.session.query(Vote).filter_by(user_id=user.id, media_id=media.id).first()
             if vote is None:
                 new_vote = Vote(user_id=user.id, media_id=media.id, status=VoteStatus.UPVOTE)
-                media.total_vote += 1 # real-time here?
+                media.total_vote += 1
                 db.session.add(new_vote)
                 db.session.commit()
+
+                data = {
+                    "name": user.name,
+                    "media": media.id,
+                    "total_vote": media.total_vote
+                }
+
+                pusher.trigger(media.room_id, PusherEvent.UP_VOTE, data)
+
                 return jsonify({
-                    'message': 'upvoted successfully', 
+                    'message': 'Upvote successfully',
                     'current_media': media.id,
                     'total_vote': media.total_vote
                 })
             if vote.status == VoteStatus.UPVOTE:
-                raise Error(StatusCode.FORBIDDEN, 'Already upvoted')
+                raise Error(StatusCode.FORBIDDEN, 'Already up-voted')
             if vote.status == VoteStatus.DOWNVOTE:
                 vote.status = VoteStatus.UPVOTE
                 media.total_vote += 1
                 db.session.commit()
+
+                data = {
+                    "name": user.name,
+                    "media": media.id,
+                    "total_vote": media.total_vote
+                }
+
+                pusher.trigger(media.room_id, PusherEvent.UP_VOTE, data)
+
                 return jsonify({
-                    'message': 'upvoted successfully', 
-                    'current_media': media.id,
-                    'total_vote': media.total_vote
+                    'message': 'up-voted successfully',
+                    'current_media': media.id, 
+                    'total_vote': media.total_vote  
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')
@@ -121,20 +139,28 @@ def down_vote(media_id, **kwargs):
     media = db.session.query(Media).filter_by(id=media_id).first()
     if media.status == MediaStatus.ACTIVE:
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=media.room_id).first()
-        if participant.status == ParticipantStatus.IN: # user is in the room that has that media to be able to vote
+        if participant.status == ParticipantStatus.IN:  # user is in the room that has that media to be able to vote
             vote = db.session.query(Vote).filter_by(user_id=user.id, media_id=media.id).first()
             if vote is None:
-                raise Error(StatusCode.FORBIDDEN, 'You have to upvote first in order to downvote')
+                raise Error(StatusCode.FORBIDDEN, 'You have to up-vote first in order to down-vote')
             if vote.status == VoteStatus.DOWNVOTE:
-                raise Error(StatusCode.FORBIDDEN, 'Already downvoted')
+                raise Error(StatusCode.FORBIDDEN, 'Already down-voted')
             if vote.status == VoteStatus.UPVOTE:
                 vote.status = VoteStatus.DOWNVOTE
                 media.total_vote -= 1
                 db.session.commit()
+                data = {
+                    "name": user.name,
+                    "media": media.id,
+                    "total_vote": media.total_vote
+                }
+
+                pusher.trigger(media.room_id, PusherEvent.DOWN_VOTE, data)
+
                 return jsonify({
-                    'message': 'downvoted successfully', 
-                    'current_media': media.id,
-                    'total_vote': media.total_vote
+                    'message': 'down-voted successfully',
+                    'current_media': media.id, 
+                    'total_vote': media.total_vote  
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')

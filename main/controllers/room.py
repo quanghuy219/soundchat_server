@@ -15,28 +15,26 @@ from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
 from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus
 from main.schemas.room_participant import RoomParticipantSchema
-from main.libs import pusher
-from main.libs import media_engine
+from main.libs import pusher, media_engine
 
 
+# TODO: check this one
 @app.route('/api/rooms', methods=['GET'])
 @access_token_required
 def get_room_list(**kwargs):
     user = kwargs['user']
     all_rooms = db.session.query(Room).all()
-    if user is not None: 
-        room_list = []
-        for room in all_rooms:
-            room_participants = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
-            for participant in room_participants:
-                if participant.user_id == user.id:
-                    room_list.append(RoomSchema().dump(room).data)
-        return jsonify({
-            'message': "List of user's rooms",
-            'data': room_list
-        }), 200
-    
-    raise Error(StatusCode.UNAUTHORIZED, 'Cannot authorize user')
+    room_list = []
+    for room in all_rooms:
+        room_participants = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
+        for participant in room_participants:
+            if participant.user_id == user.id:
+                room_list.append(RoomSchema().dump(room).data)
+
+    return jsonify({
+        'message': "List of user's rooms",
+        'data': room_list
+    }), 200
 
 
 @app.route('/api/rooms/<int:room_id>', methods=['GET'])
@@ -44,7 +42,7 @@ def get_room_list(**kwargs):
 def get_room_info(room_id, **kwargs):
     user = kwargs['user']
     room = db.session.query(Room).filter_by(id=room_id).first() 
-    if user is not None and room is not None:
+    if room is not None:
         participants = db.session.query(RoomParticipant).filter_by(room_id=room_id).all()
         messages = db.session.query(Message).filter_by(room_id=room_id).all()
         playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
@@ -98,9 +96,10 @@ def add_participant_to_room(room_id, **kwargs):
                 'message': 'New participant to the room is created',
                 'data': RoomParticipantSchema().dump(new_participant).data
             }), 200
-        if checked_participant.status == ParticipantStatus.OUT or checked_participant.status == ParticipantStatus.DELETED:
+        if checked_participant.status == ParticipantStatus.OUT or \
+                checked_participant.status == ParticipantStatus.DELETED:
             checked_participant.status = ParticipantStatus.IN
-            user.current_room = room_id
+            db.session.commit()
 
             notification = {
                 "name": user.name,
