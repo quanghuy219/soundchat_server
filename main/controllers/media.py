@@ -37,7 +37,7 @@ def add_media(user, args):
         room.current_media = new_media.id
         room.media_time = 0
         room.status = MediaStatus.PAUSING
-        
+
         current_media = media_engine.get_current_media(room_id)
         pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(current_media).data)
         media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)

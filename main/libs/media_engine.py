@@ -41,7 +41,7 @@ def check_all_user_have_same_media_status(room_id, status):
     not_ready_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
                         .filter(RoomParticipant.room_id == room_id) \
                         .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.ACTIVE) \
+                        .filter(RoomParticipant.status == RoomParticipantStatus.IN) \
                         .filter(RoomParticipant.media_status != status) \
                         .all()
 
@@ -55,7 +55,7 @@ def set_online_users_media_status(room_id, status):
     online_users = RoomParticipant.query.join(User, User.id == RoomParticipant.user_id) \
                         .filter(RoomParticipant.room_id == room_id) \
                         .filter(User.online == 1) \
-                        .filter(RoomParticipant.status == RoomParticipantStatus.ACTIVE) \
+                        .filter(RoomParticipant.status == RoomParticipantStatus.IN) \
                         .all()
 
     if not len(online_users):

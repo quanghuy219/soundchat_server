@@ -65,7 +65,7 @@ def create_room(user):
     db.session.add(new_room)
 
     # When creator creates the room, he automatically joins that room
-    creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.ACTIVE)
+    creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.IN)
     db.session.add(creator_participant)
     db.session.commit()
 
@@ -83,7 +83,7 @@ def add_participant_to_room(room_id, **kwargs):
     if room is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
-            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.ACTIVE)
+            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.IN)
             db.session.add(new_participant)
             db.session.commit()
 
@@ -100,8 +100,8 @@ def add_participant_to_room(room_id, **kwargs):
                 'data': RoomParticipantSchema().dump(new_participant).data
             }), 200
 
-        if checked_participant.status == RoomParticipantStatus.DEACTIVATED:
-            checked_participant.status = RoomParticipantStatus.ACTIVE
+        if checked_participant.status == RoomParticipantStatus.OUT:
+            checked_participant.status = RoomParticipantStatus.IN
             db.session.commit()
 
             notification = {
@@ -130,7 +130,7 @@ def delete_participant_in_room(room_id, **kwargs):
     room = db.session.query(Room).filter_by(id=room_id).first()
     if User.get_user_by_email(user.email) is not None and room is not None:
         deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
-        if deleted_participant.status == RoomParticipantStatus.ACTIVE: 
+        if deleted_participant.status == RoomParticipantStatus.IN:
             deleted_participant.status = RoomParticipantStatus.DELETED
             db.session.commit()
 
