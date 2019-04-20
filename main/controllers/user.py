@@ -16,6 +16,7 @@ def login(args):
     if user is not None and pw.generate_hash(args['password'], user.password_salt) == user.password_hash:
         user.online = 1
         db.session.commit()
+
         return jsonify({
             'message': 'Login success',
             'access_token': encode(user),
@@ -34,7 +35,7 @@ def register_new_user(**kwargs):
     if User.get_user_by_email(email) is not None:
         raise Error(StatusCode.BAD_REQUEST, 'This email has been registered before')
 
-    user = User(**args, status=UserStatus.ACTIVE)
+    user = User(**args, status=UserStatus.ACTIVE, online=0)
     db.session.add(user)
     db.session.commit()
     return jsonify({

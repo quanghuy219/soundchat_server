@@ -6,6 +6,7 @@ class UserStatus:
 class PusherEvent:
     NEW_MESSAGE = 'new_message'
     NEW_PARTICIPANT = 'new_participant'
+    EXIT_PARTICIPANT = 'exit_participant'
     DELETE_PARTICIPANT = 'delete_participant'
     NEW_MEDIA = 'new_media'
     PLAY = 'play'
@@ -14,7 +15,7 @@ class PusherEvent:
     PROCEED = 'proceed'
 
 
-class RoomParticipantStatus: 
+class ParticipantStatus:
     IN = 'in'
     OUT = 'out'
     DELETED = 'deleted'
@@ -30,7 +31,7 @@ class VoteStatus:
     DOWNVOTE = 'downvote'
 
 
-class MediaStatus:
+class MediaStatus: 
     ACTIVE = 'active'
     DELETED = 'deleted'
     VOTING = 'voting'
@@ -39,3 +40,16 @@ class MediaStatus:
     PAUSING = 'pausing'
     READY = 'ready'
     SEEKING = 'seeking'
+
+
+class MediaAction:
+    PLAY = 'play'
+    PAUSE = 'pause'
+    SEEK = 'seek'
+
+
+MediaActions = [
+    MediaAction.PLAY,
+    MediaAction.PAUSE,
+    MediaAction.SEEK
+]

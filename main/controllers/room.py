@@ -6,7 +6,6 @@ from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required
 from main.models.room import Room
 from main.models.room_paticipant import RoomParticipant
-from main.models.user import User
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.models.media import Media
@@ -14,7 +13,7 @@ from main.schemas.media import MediaSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import RoomParticipantStatus, PusherEvent, MediaStatus, RoomStatus
+from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher
 from main.libs import media_engine
@@ -65,7 +64,7 @@ def create_room(user):
     db.session.add(new_room)
 
     # When creator creates the room, he automatically joins that room
-    creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=RoomParticipantStatus.IN)
+    creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=ParticipantStatus.IN)
     db.session.add(creator_participant)
     db.session.commit()
 
@@ -83,7 +82,7 @@ def add_participant_to_room(room_id, **kwargs):
     if room is not None:
         checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
         if checked_participant is None:
-            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=RoomParticipantStatus.IN)
+            new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=ParticipantStatus.IN)
             db.session.add(new_participant)
             db.session.commit()
 
@@ -99,10 +98,9 @@ def add_participant_to_room(room_id, **kwargs):
                 'message': 'New participant to the room is created',
                 'data': RoomParticipantSchema().dump(new_participant).data
             }), 200
-
-        if checked_participant.status == RoomParticipantStatus.OUT:
-            checked_participant.status = RoomParticipantStatus.IN
-            db.session.commit()
+        if checked_participant.status == ParticipantStatus.OUT or checked_participant.status == ParticipantStatus.DELETED:
+            checked_participant.status = ParticipantStatus.IN
+            user.current_room = room_id
 
             notification = {
                 "name": user.name,
@@ -128,10 +126,11 @@ def add_participant_to_room(room_id, **kwargs):
 def delete_participant_in_room(room_id, **kwargs):
     user = kwargs['user']
     room = db.session.query(Room).filter_by(id=room_id).first()
-    if User.get_user_by_email(user.email) is not None and room is not None:
+    if room is not None:
         deleted_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
-        if deleted_participant.status == RoomParticipantStatus.IN:
-            deleted_participant.status = RoomParticipantStatus.DELETED
+        if deleted_participant.status == ParticipantStatus.IN:
+            deleted_participant.status = ParticipantStatus.DELETED
+            user.current_room = None
             db.session.commit()
 
             room_name = 'presence-room-' + str(room_id)
@@ -149,6 +148,37 @@ def delete_participant_in_room(room_id, **kwargs):
             }), 200 
         return jsonify({
             'message': 'Failed to delete participant'
+        }), StatusCode.BAD_REQUEST
+    raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
+
+
+@app.route('/api/rooms/<int:room_id>/users', methods=['PUT'])
+@access_token_required
+def participant_exit_room(room_id, **kwargs):
+    user = kwargs['user']
+    room = db.session.query(Room).filter_by(id=room_id).first()
+    if room is not None:
+        participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).first()
+        if participant.status == ParticipantStatus.IN:
+            participant.status = ParticipantStatus.OUT
+            user.current_room = None
+            db.session.commit()
+
+            room_name = 'presence-room-' + str(room_id)
+
+            notification = {
+                "name": user.name,
+                "user_id": user.id,
+                "room": room_id
+            }
+
+            pusher.trigger(room_name, PusherEvent.EXIT_PARTICIPANT, notification)
+
+            return jsonify({
+                'message': 'Participant exited successfully'
+            }), 200
+        return jsonify({
+            'message': 'participant failed to exit'
         }), StatusCode.BAD_REQUEST
     raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
 
@@ -278,6 +308,3 @@ def update_media_status(room_id, user, args):
 
     db.session.commit()
     return jsonify(res)
-
-
-

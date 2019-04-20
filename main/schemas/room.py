@@ -6,3 +6,4 @@ class RoomSchema(Schema):
     creator_id = fields.Int()
     current_media = fields.Int(required=False)
     status = fields.Str(validate=validate.Length(min=3, max=20))
+    media_time = fields.Int()
