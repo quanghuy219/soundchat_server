@@ -1,18 +1,24 @@
 import logging
 import os
-import json
 
 from main import pusher_client
 from main.libs.tasks import celery_app
+from main.cfg import config
+
+
+def create_channel_name(room_id):
+    """Channel name format: presence-room-<room_id>-<namespace>"""
+    return "presence-room-{}-{}".format(room_id, config.PUSHER_NAMESPACE)
 
 
 def parse_channel_name(channel_name):
-    """Channel name format: presence-room-<room_id>"""
-    with open('pusher_namespace.json') as namespace_file:
-        data = json.load(namespace_file)
-        namespace = data['namespace']
+    """Read room id from channel name"""
+    names = channel_name.split('-')
+    if len(names) != 4:
+        logging.warning('Invalid pusher channel name')
+        return None
 
-    return channel_name + '-' + namespace
+    return names[2]
 
 
 def authenticate(request, account):
@@ -39,12 +45,17 @@ def _trigger_pusher(channel_name, event, data):
         logging.exception('Pusher exception occurs')
 
 
-def trigger(channel_name, event, data):
+def trigger(room_id, event, data={}):
     if os.getenv('FLASK_ENV') == 'test':
-        return _trigger_pusher(parse_channel_name(channel_name), event, data)
+        return _trigger_pusher(create_channel_name(room_id), event, data)
 
-    return _trigger_pusher.delay(parse_channel_name(channel_name), 'new_message', data)
+    return _trigger_pusher.delay(create_channel_name(room_id), event, data)
 
 
-def trigger_new_message(channel_name, data):
-    return trigger(channel_name, 'new_message', data)
+def read_pusher_webhook(request):
+    webhook = pusher_client.validate_webhook(
+        key=request.headers.get('X-Pusher-Key'),
+        signature=request.headers.get('X-Pusher-Signature'),
+        body=request.data
+    )
+    return webhook
