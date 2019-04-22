@@ -24,7 +24,7 @@ def get_room_list(**kwargs):
     user = kwargs['user']
     user_rooms = db.session.query(Room).join(RoomParticipant).filter_by(user_id=user.id).all()
     return jsonify({
-        'message': "List of user's rooms",
+        'message': 'List of user\'s rooms',
         'data': RoomSchema(many=True).dump(user_rooms).data
     }), 200
 

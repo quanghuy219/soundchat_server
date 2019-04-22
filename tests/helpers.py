@@ -3,6 +3,9 @@ import json
 
 from main import app
 from main.models.user import User
+from main.models.room import Room
+from main.models.room_paticipant import RoomParticipant
+from main.enums import RoomStatus, ParticipantStatus
 
 
 def random_id():
@@ -27,6 +30,16 @@ def setup_user(session, email=None, password='123456', name='Testing User'):
     session.add(user)
     session.commit()
     return user
+
+
+def setup_room(session, user_id):
+    room = Room(creator_id=user_id, status=RoomStatus.ACTIVE)
+    session.add(room)
+    session.commit()
+    participant = RoomParticipant(user_id=user_id, room_id=room.id, status=ParticipantStatus.IN)
+    session.add(participant)
+    session.commit()
+    return room
 
 
 test_app = app.test_client()
