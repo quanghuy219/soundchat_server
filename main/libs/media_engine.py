@@ -32,6 +32,7 @@ def get_current_media(room_id):
         current_media_time = room.media_time + time_diff
 
     current_song = Media.query.filter(Media.id == room.current_media).one_or_none()
+    current_song.status = room.status
     setattr(current_song, 'media_time', current_media_time)
     return current_song
 
