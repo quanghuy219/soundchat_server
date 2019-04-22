@@ -45,7 +45,7 @@ _register_subpackages()
 def handle_not_found(exception):
     """Handle an invalid endpoint"""
     return jsonify({
-        'error_message': 'Resource not found'
+        'message': 'Resource not found'
     }), 404
 
 
@@ -60,5 +60,5 @@ def handle_internal_error(exception):
     logging.error(exception)
     db.session.rollback()
     return jsonify({
-        'error_message': 'An unexpected internal error has occurred'
+        'message': 'An unexpected internal error has occurred'
     }), 500

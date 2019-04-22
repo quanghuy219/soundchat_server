@@ -18,22 +18,14 @@ from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher, media_engine
 
 
-# TODO: check this one
 @app.route('/api/rooms', methods=['GET'])
 @access_token_required
 def get_room_list(**kwargs):
     user = kwargs['user']
-    all_rooms = db.session.query(Room).all()
-    room_list = []
-    for room in all_rooms:
-        room_participants = db.session.query(RoomParticipant).filter_by(room_id=room.id).all()
-        for participant in room_participants:
-            if participant.user_id == user.id:
-                room_list.append(RoomSchema().dump(room).data)
-
+    user_rooms = db.session.query(Room).join(RoomParticipant).filter_by(user_id=user.id).all()
     return jsonify({
         'message': "List of user's rooms",
-        'data': room_list
+        'data': RoomSchema().dump(user_rooms, many=True).data
     }), 200
 
 
@@ -60,7 +52,7 @@ def get_room_info(room_id, **kwargs):
 def create_room(user):
     new_room = Room(creator_id=user.id, status=RoomStatus.ACTIVE)
     db.session.add(new_room)
-
+    db.session.commit()
     # When creator creates the room, he automatically joins that room
     creator_participant = RoomParticipant(user_id=user.id, room_id=new_room.id, status=ParticipantStatus.IN)
     db.session.add(creator_participant)
@@ -114,9 +106,7 @@ def add_participant_to_room(room_id, **kwargs):
                 'data': RoomParticipantSchema().dump(checked_participant).data
             }), 200
 
-        return jsonify({
-            'message': 'Already participated'
-        }), StatusCode.FORBIDDEN
+        raise Error(StatusCode.UNAUTHORIZED, 'Already participated')
     raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
 
 
@@ -132,22 +122,18 @@ def delete_participant_in_room(room_id, **kwargs):
             user.current_room = None
             db.session.commit()
 
-            room_name = 'presence-room-' + str(room_id)
-
             notification = {
                 "name": user.name,
                 "user_id": user.id,
                 "room": room_id
             }
 
-            pusher.trigger(room_name, PusherEvent.DELETE_PARTICIPANT, notification)
+            pusher.trigger(room_id, PusherEvent.DELETE_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'Participant deleted successfully'
             }), 200 
-        return jsonify({
-            'message': 'Failed to delete participant'
-        }), StatusCode.BAD_REQUEST
+        raise Error(StatusCode.UNAUTHORIZED, 'Failed to delete participant')
     raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
 
 
@@ -163,22 +149,18 @@ def participant_exit_room(room_id, **kwargs):
             user.current_room = None
             db.session.commit()
 
-            room_name = 'presence-room-' + str(room_id)
-
             notification = {
                 "name": user.name,
                 "user_id": user.id,
                 "room": room_id
             }
 
-            pusher.trigger(room_name, PusherEvent.EXIT_PARTICIPANT, notification)
+            pusher.trigger(room_id, PusherEvent.EXIT_PARTICIPANT, notification)
 
             return jsonify({
                 'message': 'Participant exited successfully'
             }), 200
-        return jsonify({
-            'message': 'participant failed to exit'
-        }), StatusCode.BAD_REQUEST
+        raise Error(StatusCode.UNAUTHORIZED, 'participant failed to exit')
     raise Error(StatusCode.UNAUTHORIZED, 'User or room information is invalid')
 
 

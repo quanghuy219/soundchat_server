@@ -48,7 +48,11 @@ def get_next_song(user, args):
 @access_token_required
 def add_media(user, args):
     room_id = args['room_id']
-    room = db.session.query(Room).filter_by(id=room_id)
+    room = db.session.query(Room).filter_by(id=room_id).one_or_none()
+
+    if room is None:
+        raise Error(StatusCode.BAD_REQUEST, 'Invalid room id')
+
     participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=args['room_id']).first()
 
     # check whether user is in the room or not to add media

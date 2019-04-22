@@ -39,6 +39,6 @@ def register_new_user(**kwargs):
     db.session.add(user)
     db.session.commit()
     return jsonify({
-        'message': 'New account for student is created',
+        'message': 'Your account was created successfully',
         'data': UserSchema().dump(user).data
     }), 200
