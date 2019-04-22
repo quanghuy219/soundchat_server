@@ -28,7 +28,7 @@ class TestAuthentication:
         assert res.status_code == 401
 
         res_data = json.loads(res.data)
-        assert res_data['error_message'] == 'Email or password is incorrect'
+        assert res_data['message'] == 'Email or password is incorrect'
 
     def test_user_login_with_wrong_password(self, session):
         user = setup_user(session)
@@ -41,7 +41,7 @@ class TestAuthentication:
         assert res.status_code == 401
 
         res_data = json.loads(res.data)
-        assert res_data['error_message'] == 'Email or password is incorrect'
+        assert res_data['message'] == 'Email or password is incorrect'
 
     def test_user_login_without_email(self, session):
         setup_user(session)
