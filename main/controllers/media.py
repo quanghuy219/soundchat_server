@@ -73,13 +73,12 @@ def add_media(user, args):
 
     return jsonify({
         'message': 'media added to room successfully',
-        'media_url': new_media.url,
-        'room_id': new_media.room_id,
-        'media_id': new_media.id
+        'data': MediaSchema().dump(new_media).data
     })
 
 
 @app.route('/api/media/<int:media_id>/vote', methods=['POST'])
+@parse_request_args(MediaSchema())
 @access_token_required
 def up_vote(media_id, **kwargs):
     user = kwargs['user']
@@ -105,8 +104,7 @@ def up_vote(media_id, **kwargs):
 
                 return jsonify({
                     'message': 'Upvote successfully',
-                    'current_media': media.id,
-                    'total_vote': media.total_vote
+                    'data': MediaSchema().dump(media).data
                 })
             if vote.status == VoteStatus.UPVOTE:
                 raise Error(StatusCode.FORBIDDEN, 'Already up-voted')
@@ -116,23 +114,22 @@ def up_vote(media_id, **kwargs):
                 db.session.commit()
 
                 data = {
-                    "name": user.name,
-                    "media": media.id,
-                    "total_vote": media.total_vote
+                    'name': user.name,
+                    'data': MediaSchema().dump(media).data
                 }
 
                 pusher.trigger(media.room_id, PusherEvent.UP_VOTE, data)
 
                 return jsonify({
                     'message': 'up-voted successfully',
-                    'current_media': media.id, 
-                    'total_vote': media.total_vote  
+                    'data': MediaSchema().dump(media).data
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')
 
 
 @app.route('/api/media/<int:media_id>/vote', methods=['DELETE'])
+@parse_request_args(MediaSchema())
 @access_token_required
 def down_vote(media_id, **kwargs):
     user = kwargs['user']
@@ -159,14 +156,14 @@ def down_vote(media_id, **kwargs):
 
                 return jsonify({
                     'message': 'down-voted successfully',
-                    'current_media': media.id, 
-                    'total_vote': media.total_vote  
+                    'data': MediaSchema().dump(media).data
                 })
         raise Error(StatusCode.FORBIDDEN, 'Not allow to vote')
     raise Error(StatusCode.FORBIDDEN, 'Media does not exist')
 
 
 @app.route('/api/media/<int:media_id>', methods=['DELETE'])
+@parse_request_args(MediaSchema())
 @access_token_required
 def delete_video(media_id, **kwargs):
     user = kwargs['user']
@@ -176,6 +173,7 @@ def delete_video(media_id, **kwargs):
             media.status = MediaStatus.DELETED
             db.session.commit()
             return jsonify({
-                'message': 'deleted successfully'
+                'message': 'deleted successfully',
+                'data': MediaSchema().dump(media).data
             }), 200
     raise Error(StatusCode.BAD_REQUEST, 'Cannot delete media')
