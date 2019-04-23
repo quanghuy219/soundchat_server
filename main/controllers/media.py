@@ -100,11 +100,11 @@ def up_vote(media_id, **kwargs):
 
                 data = {
                     "name": user.name,
-                    "media": media.id,
-                    "total_vote": media.total_vote
+                    "data": MediaSchema().dump(media).data,
+                    "type": "up-vote"
                 }
 
-                pusher.trigger(media.room_id, PusherEvent.UP_VOTE, data)
+                pusher.trigger(media.room_id, PusherEvent.VOTE, data)
 
                 return jsonify({
                     'message': 'Upvote successfully',
@@ -118,11 +118,12 @@ def up_vote(media_id, **kwargs):
                 db.session.commit()
 
                 data = {
-                    'name': user.name,
-                    'data': MediaSchema().dump(media).data
+                    "name": user.name,
+                    "data": MediaSchema().dump(media).data,
+                    "type": "up-vote"
                 }
 
-                pusher.trigger(media.room_id, PusherEvent.UP_VOTE, data)
+                pusher.trigger(media.room_id, PusherEvent.VOTE, data)
 
                 return jsonify({
                     'message': 'up-voted successfully',
@@ -152,11 +153,11 @@ def down_vote(media_id, **kwargs):
                 db.session.commit()
                 data = {
                     "name": user.name,
-                    "media": media.id,
-                    "total_vote": media.total_vote
+                    "data": MediaSchema().dump(media).data,
+                    "type": "down-vote"
                 }
 
-                pusher.trigger(media.room_id, PusherEvent.DOWN_VOTE, data)
+                pusher.trigger(media.room_id, PusherEvent.VOTE, data)
 
                 return jsonify({
                     'message': 'down-voted successfully',
