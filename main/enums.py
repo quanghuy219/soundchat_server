@@ -11,10 +11,7 @@ class PusherEvent:
     UP_VOTE = 'up_vote'
     DOWN_VOTE = 'down_vote'
     NEW_MEDIA = 'new_media'
-    PLAY = 'play'
-    PAUSE = 'pause'
-    SEEK = 'seek'
-    PROCEED = 'proceed'
+    MEDIA_STATUS_CHANGED = 'media_status_changed'
 
 
 class ParticipantStatus: 
