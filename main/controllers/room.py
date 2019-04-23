@@ -240,8 +240,12 @@ def update_media_status(room_id, user, args):
             'message': 'Waiting for other members to be ready',
         }
         if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.READY):
-            current_song = media_engine.get_current_media(room_id)
-            pusher.trigger(room_id, PusherEvent.PLAY, MediaSchema().dump(current_song).data)
+            current_media = media_engine.get_current_media(room_id)
+            event_data = {
+                'event': MediaStatus.PLAYING,
+                'data': MediaSchema().dump(current_media).data
+            }
+            pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
             media_engine.set_online_users_media_status(room_id, MediaStatus.PLAYING)
             room.status = MediaStatus.PLAYING
 
@@ -250,7 +254,12 @@ def update_media_status(room_id, user, args):
         room.media_time = args['media_time']
         room.status = status
         media_engine.set_online_users_media_status(room_id, MediaStatus.PLAYING)
-        pusher.trigger(room_id, PusherEvent.PLAY)
+        current_song = media_engine.get_current_media(room_id)
+        event_data = {
+            'event': MediaStatus.PLAYING,
+            'data': MediaSchema().dump(current_song).data
+        }
+        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
         res = {
             'message': 'Play video'
         }
@@ -259,7 +268,12 @@ def update_media_status(room_id, user, args):
         room.media_time = args['media_time']
         room.status = status
         media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-        pusher.trigger(room_id, PusherEvent.PAUSE)
+        current_song = media_engine.get_current_media(room_id)
+        event_data = {
+            'event': MediaStatus.PAUSING,
+            'data': MediaSchema().dump(current_song).data
+        }
+        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
         res = {
             'message': 'Pause video'
         }
@@ -268,7 +282,12 @@ def update_media_status(room_id, user, args):
         room.media_time = args['media_time']
         room.status = MediaStatus.PAUSING
         media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-        pusher.trigger(room_id, PusherEvent.SEEK, {'media_time': args['media_time']})
+        current_song = media_engine.get_current_media(room_id)
+        event_data = {
+            'event': MediaStatus.SEEKING,
+            'data': MediaSchema().dump(current_song).data
+        }
+        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
         res = {
             'message': 'Seek video'
         }
@@ -284,17 +303,14 @@ def update_media_status(room_id, user, args):
         if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.FINISHED):
             current_song = Media.query.filter(Media.id == room.current_media).one()
             current_song.status = MediaStatus.FINISHED
-
-            next_media = media_engine.get_next_media(room_id)
-            room.status = MediaStatus.PAUSING
             media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-            if next_media:
-                room.current_media = next_media.id
-                room.media_time = 0
-                pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(next_media).data)
-            else:
-                room.current_media = None
-                room.media_time = 0
+            current_media = media_engine.set_current_media(room_id)
+            event_data = {
+                'event': MediaStatus.PAUSING,
+                'data': MediaSchema().dump(current_media).data
+            }
+            pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+
         res = {
             'message': 'Wait for other member to finish their video'
         }
