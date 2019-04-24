@@ -59,7 +59,7 @@ def upgrade():
     op.create_table('room_paticipant',
     sa.Column('created', sa.DateTime(), nullable=False),
     sa.Column('updated', sa.DateTime(), nullable=False),
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=True),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('room_id', sa.Integer(), nullable=False),
     sa.Column('media_status', sa.String(length=50), nullable=True),

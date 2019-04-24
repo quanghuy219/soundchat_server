@@ -5,7 +5,7 @@ from main.models.base import TimestampMixin
 class RoomParticipant(db.Model, TimestampMixin):
     __tablename__ = 'room_paticipant'
 
-    id = db.Column(db.Integer, autoincrement=True)
+    id = db.Column(db.Integer, autoincrement=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     user = db.relationship('User')
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), primary_key=True)
