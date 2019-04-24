@@ -3,7 +3,7 @@ from marshmallow import Schema, fields, validate
 
 from main import db, app 
 from main.errors import Error, StatusCode
-from main.utils.helpers import parse_request_args, access_token_required
+from main.utils.helpers import parse_request_args, access_token_required, create_fingerprint
 from main.models.room import Room
 from main.models.room_paticipant import RoomParticipant
 from main.models.message import Message
@@ -60,7 +60,8 @@ def get_room_info(user, room_id, **kwargs):
 @app.route('/api/rooms', methods=['POST'])
 @access_token_required
 def create_room(user):
-    new_room = Room(creator_id=user.id, status=RoomStatus.ACTIVE)
+    room_fingerprint = create_fingerprint()
+    new_room = Room(creator_id=user.id, fingerprint=room_fingerprint, status=RoomStatus.ACTIVE)
     db.session.add(new_room)
     db.session.commit()
     # When creator creates the room, he automatically joins that room
@@ -72,7 +73,36 @@ def create_room(user):
         'message': 'New room is created',
         'data': RoomSchema().dump(new_room).data
     }), 200
-    
+
+
+class RoomFingerprint(Schema):
+    fingerprint = fields.String(required=True)
+
+
+@app.route('/api/rooms/fingerprint', methods=['POST'])
+@parse_request_args(RoomFingerprint())
+@access_token_required
+def join_room_by_fingerprint(user, args):
+    fingerprint = args['fingerprint']
+    room = Room.query.filter(Room.fingerprint == fingerprint).one_or_none()
+    if room is None:
+        raise Error(StatusCode.BAD_REQUEST, 'Invalid room fingerprint')
+    if room.status == RoomStatus.DELETED:
+        raise Error(StatusCode.FORBIDDEN, 'This room no longer exists')
+
+    participant = RoomParticipant.query.filter_by(user_id=user.id, room_id=room.id).one_or_none()
+    if participant is None:
+        participant = RoomParticipant(user_id=user.id, room_id=room.id, status=ParticipantStatus.IN)
+        db.session.add(participant)
+    else:
+        participant.status = ParticipantStatus.IN
+
+    db.session.commit()
+    return jsonify({
+        'message': 'You have joined this room',
+        'data': RoomSchema().dump(room).data
+    })
+
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
 @access_token_required

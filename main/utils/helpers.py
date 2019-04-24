@@ -1,6 +1,8 @@
 import datetime
 from functools import wraps
 import logging
+import string
+import random
 
 import jwt
 from flask import request
@@ -84,3 +86,8 @@ def access_token_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+def create_fingerprint():
+    letters = string.ascii_letters
+    return ''.join(random.choice(letters) for i in range(20))
