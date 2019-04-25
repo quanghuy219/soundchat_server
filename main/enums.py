@@ -12,6 +12,7 @@ class PusherEvent:
     DOWN_VOTE = 'down_vote'
     NEW_MEDIA = 'new_media'
     MEDIA_STATUS_CHANGED = 'media_status_changed'
+    PROCEED = 'proceed'
 
 
 class ParticipantStatus: 

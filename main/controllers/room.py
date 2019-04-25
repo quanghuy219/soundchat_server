@@ -333,13 +333,14 @@ def update_media_status(room_id, user, args):
         if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.FINISHED):
             current_song = Media.query.filter(Media.id == room.current_media).one()
             current_song.status = MediaStatus.FINISHED
+
             media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
             current_media = media_engine.set_current_media(room_id)
-            event_data = {
-                'event': MediaStatus.PAUSING,
-                'data': MediaSchema().dump(current_media).data
-            }
-            pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+            parsed_current_media = MediaSchema().dump(current_media).data
+            if parsed_current_media:
+                parsed_current_media['media_time'] = 0
+                parsed_current_media['status'] = MediaStatus.PAUSING
+            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_current_media)
 
         res = {
             'message': 'Wait for other member to finish their video'
