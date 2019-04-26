@@ -335,12 +335,12 @@ def update_media_status(room_id, user, args):
             current_song.status = MediaStatus.FINISHED
 
             media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-            current_media = media_engine.set_current_media(room_id)
-            parsed_current_media = MediaSchema().dump(current_media).data
-            if parsed_current_media:
-                parsed_current_media['media_time'] = 0
-                parsed_current_media['status'] = MediaStatus.PAUSING
-            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_current_media)
+            next_media = media_engine.set_current_media(room_id)
+            parsed_next_media = MediaSchema().dump(next_media).data
+            if parsed_next_media:
+                parsed_next_media['media_time'] = 0
+                parsed_next_media['status'] = MediaStatus.PAUSING
+            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_next_media)
 
         res = {
             'message': 'Wait for other member to finish their video'
