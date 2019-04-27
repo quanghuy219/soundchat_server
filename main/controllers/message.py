@@ -28,11 +28,11 @@ def send_message(user, args):
         'user_id': user.id,
         'username': user.name,
         'room_id': room_id,
-        'message': args['content']
+        'content': args['content']
     }
     pusher.trigger(room_id, PusherEvent.NEW_MESSAGE, data)
 
     return jsonify({
-        'message': 'message added successfully',
+        'message': 'Message added successfully',
         'data': MessageSchema().dump(message).data
     }), 200
