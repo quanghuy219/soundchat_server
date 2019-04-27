@@ -25,9 +25,10 @@ def send_message(user, args):
     db.session.commit()
 
     data = {
-        "username": user.name,
-        "room_id": room_id,
-        "message": args['content']
+        'user_id': user.id,
+        'username': user.name,
+        'room_id': room_id,
+        'message': args['content']
     }
     pusher.trigger(room_id, PusherEvent.NEW_MESSAGE, data)
 
