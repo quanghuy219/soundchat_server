@@ -49,6 +49,7 @@ def get_room_info(user, room_id, **kwargs):
     return jsonify({
         'message': 'Room Information',
         'data': {
+            'fingerprint': room.fingerprint,
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
