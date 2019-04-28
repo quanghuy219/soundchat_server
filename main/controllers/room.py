@@ -5,6 +5,8 @@ from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required, create_fingerprint
 from main.models.room import Room
+from main.models.user import User
+from main.models.vote import Vote
 from main.models.room_paticipant import RoomParticipant
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
@@ -45,14 +47,18 @@ def get_room_info(user, room_id, **kwargs):
     messages = db.session.query(Message).filter_by(room_id=room_id).all()
     playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
     media = db.session.query(Media).filter_by(room_id=room_id).filter_by(status=MediaStatus.VOTING).all()
-
+    # media_info = []
+    for each in media: 
+        voted_users = db.session.query(User).join(Vote).filter_by(each.id).all()
+        each['vote_users'] = voted_users
+        # media_info.append(each)
     return jsonify({
         'message': 'Room Information',
         'data': {
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
-            'media': MediaSchema(many=True).dump(media).data
+            'media': media 
         }
     }), 200
 
