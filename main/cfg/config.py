@@ -1,7 +1,7 @@
 class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = 'super_secret_key'
-    # SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:123456@127.0.0.1:3306/soundchat_dev'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@127.0.0.1:3307/soundchat_dev?charset=utf8mb4'
     REDIS_URI = 'redis://localhost:6379/5'
     REDIS_PREFIX = 'soundchat'
     PUSHER_APP_ID = '750022'

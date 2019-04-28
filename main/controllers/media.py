@@ -67,12 +67,13 @@ def add_media(user, args):
     # Play the newest proposed video if current_media is not set
     if not room.current_media:
         new_media.status = MediaStatus.PLAYING
-        room.current_media = new_media.id
-        room.media_time = 0
-        room.status = MediaStatus.PAUSING
+        current_media = media_engine.set_current_media(room_id, new_media.id)
 
-        current_media = media_engine.get_current_media(room_id)
-        pusher.trigger(room_id, PusherEvent.PROCEED, MediaSchema().dump(current_media).data)
+        parsed_current_media = MediaSchema().dump(current_media).data
+        parsed_current_media['media_time'] = 0
+        parsed_current_media['status'] = MediaStatus.PAUSING
+
+        pusher.trigger(room_id, PusherEvent.PROCEED, parsed_current_media)
         media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
 
     return jsonify({

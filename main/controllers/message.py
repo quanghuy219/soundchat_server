@@ -25,13 +25,14 @@ def send_message(user, args):
     db.session.commit()
 
     data = {
-        "username": user.name,
-        "room_id": room_id,
-        "message": args['content']
+        'user_id': user.id,
+        'username': user.name,
+        'room_id': room_id,
+        'content': args['content']
     }
     pusher.trigger(room_id, PusherEvent.NEW_MESSAGE, data)
 
     return jsonify({
-        'message': 'message added successfully',
+        'message': 'Message added successfully',
         'data': MessageSchema().dump(message).data
     }), 200

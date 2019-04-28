@@ -49,6 +49,7 @@ def get_room_info(user, room_id, **kwargs):
     return jsonify({
         'message': 'Room Information',
         'data': {
+            'fingerprint': room.fingerprint,
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
@@ -333,13 +334,14 @@ def update_media_status(room_id, user, args):
         if media_engine.check_all_user_have_same_media_status(room_id, MediaStatus.FINISHED):
             current_song = Media.query.filter(Media.id == room.current_media).one()
             current_song.status = MediaStatus.FINISHED
+
             media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-            current_media = media_engine.set_current_media(room_id)
-            event_data = {
-                'event': MediaStatus.PAUSING,
-                'data': MediaSchema().dump(current_media).data
-            }
-            pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+            next_media = media_engine.set_current_media(room_id)
+            parsed_next_media = MediaSchema().dump(next_media).data
+            if parsed_next_media:
+                parsed_next_media['media_time'] = 0
+                parsed_next_media['status'] = MediaStatus.PAUSING
+            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_next_media)
 
         res = {
             'message': 'Wait for other member to finish their video'
