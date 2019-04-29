@@ -88,7 +88,7 @@ def add_media(user, args):
 def up_vote(media_id, **kwargs):
     user = kwargs['user']
     media = db.session.query(Media).filter_by(id=media_id).first()
-    if media.status == MediaStatus.ACTIVE:
+    if media.status == MediaStatus.VOTING:
         participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=media.room_id).first()
         if participant.status == ParticipantStatus.IN:
             # user is in the room that has that media to be able to vote
