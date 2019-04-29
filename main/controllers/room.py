@@ -9,11 +9,12 @@ from main.models.room_paticipant import RoomParticipant
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.models.media import Media
+from main.models.vote import Vote
 from main.schemas.media import MediaSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus
+from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus, VoteStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher, media_engine
 
@@ -45,6 +46,15 @@ def get_room_info(user, room_id, **kwargs):
     messages = db.session.query(Message).filter_by(room_id=room_id).all()
     playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
     media = db.session.query(Media).filter_by(room_id=room_id).filter_by(status=MediaStatus.VOTING).all()
+
+    for media_item in media:
+        user_vote = Vote.query \
+            .filter_by(media_id=media_item.id, user_id=user.id, status=VoteStatus.UPVOTE).one_or_none()
+        # Check if user has voted for available media
+        if user_vote:
+            setattr(media_item, 'is_voted', True)
+        else:
+            setattr(media_item, 'is_voted', False)
 
     return jsonify({
         'message': 'Room Information',
