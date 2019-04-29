@@ -60,9 +60,10 @@ def add_media(user, args):
         raise Error(StatusCode.FORBIDDEN, 'Not allow to add media')
 
     new_media = Media(**args, creator_id=user.id, total_vote=1, status=MediaStatus.VOTING)
-    pusher.trigger(room_id, PusherEvent.NEW_MEDIA, MediaSchema().dump(new_media).data)
     db.session.add(new_media)
     db.session.commit()
+
+    pusher.trigger(room_id, PusherEvent.NEW_MEDIA, MediaSchema().dump(new_media).data)
 
     # Play the newest proposed video if current_media is not set
     if not room.current_media:
