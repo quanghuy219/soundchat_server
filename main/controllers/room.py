@@ -66,7 +66,7 @@ def get_room_info(user, room_id, **kwargs):
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
-            'media': media 
+            'media': MediaSchema(many=True).dump(media).data
         }
     }), 200
 
