@@ -43,7 +43,8 @@ def get_room_info(user, room_id, **kwargs):
     if not participant or participant.status == ParticipantStatus.DELETED:
         raise Error(StatusCode.FORBIDDEN, 'You are not allowed to access room information')
 
-    participants = db.session.query(RoomParticipant).filter_by(room_id=room_id).all()
+    # Return list of online user
+    participants = db.session.query(RoomParticipant).filter_by(room_id=room_id, status=ParticipantStatus.IN).all()
     messages = db.session.query(Message).filter_by(room_id=room_id).all()
     playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
     media = db.session.query(Media).filter_by(room_id=room_id).filter_by(status=MediaStatus.VOTING).all()
