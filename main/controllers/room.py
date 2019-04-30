@@ -5,7 +5,7 @@ from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required, create_fingerprint
 from main.models.room import Room
-from main.models.room_paticipant import RoomParticipant
+from main.models.room_participant import RoomParticipant
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.models.media import Media
@@ -60,19 +60,23 @@ def get_room_info(user, room_id, **kwargs):
         'message': 'Room Information',
         'data': {
             'fingerprint': room.fingerprint,
+            'name': room.name,
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
-            'media': MediaSchema(many=True).dump(media).data
+            'media': media 
         }
     }), 200
 
 
 @app.route('/api/rooms', methods=['POST'])
+@parse_request_args(RoomSchema())
 @access_token_required
-def create_room(user):
+def create_room(user, **kwargs):
+    args = kwargs['args']
+    name = args['name']
     room_fingerprint = create_fingerprint()
-    new_room = Room(creator_id=user.id, fingerprint=room_fingerprint, status=RoomStatus.ACTIVE)
+    new_room = Room(name=name, creator_id=user.id, fingerprint=room_fingerprint, status=RoomStatus.ACTIVE)
     db.session.add(new_room)
     db.session.commit()
     # When creator creates the room, he automatically joins that room

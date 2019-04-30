@@ -6,7 +6,7 @@ from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required
 from main.models.room import Room
-from main.models.room_paticipant import RoomParticipant
+from main.models.room_participant import RoomParticipant
 from main.models.media import Media
 from main.models.vote import Vote
 from main.schemas.media import MediaSchema

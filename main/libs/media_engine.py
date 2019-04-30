@@ -2,7 +2,7 @@ import datetime
 
 from sqlalchemy import desc
 
-from main.models.room_paticipant import RoomParticipant
+from main.models.room_participant import RoomParticipant
 from main.models.media import Media
 from main.models.room import Room
 from main.enums import MediaStatus, ParticipantStatus

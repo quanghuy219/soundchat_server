@@ -2,7 +2,7 @@ from flask import request, jsonify
 
 from main import app, db
 from main.models.room import Room
-from main.models.room_paticipant import RoomParticipant
+from main.models.room_participant import RoomParticipant
 from main.models.user import User
 from main.utils.helpers import access_token_required
 from main.libs.pusher import authenticate, read_pusher_webhook, parse_channel_name, trigger
