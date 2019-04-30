@@ -10,6 +10,7 @@ from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.models.media import Media
 from main.models.vote import Vote
+from main.models.user import User
 from main.schemas.media import MediaSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
@@ -119,23 +120,37 @@ def join_room_by_fingerprint(user, args):
     })
 
 
+class NewParticipantSchema(Schema):
+    email = fields.String(required=True)
+
+
 @app.route('/api/rooms/<int:room_id>/users', methods=['POST'])
+@parse_request_args(NewParticipantSchema())
 @access_token_required
-def add_participant_to_room(room_id, **kwargs):
-    user = kwargs['user']
+def add_participant_to_room(room_id, user, args):
     room = db.session.query(Room).filter_by(id=room_id).one_or_none()
+
     if room is None:
         raise Error(StatusCode.BAD_REQUEST, 'Invalid room id')
 
+    # Only room member can add new participant
     checked_participant = db.session.query(RoomParticipant).filter_by(user_id=user.id, room_id=room_id).one_or_none()
-    if checked_participant is None:
-        new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=ParticipantStatus.IN)
+    if checked_participant is None or checked_participant.status == ParticipantStatus.DELETED:
+        raise Error(StatusCode.FORBIDDEN, 'You\'re not allowed to add new member to this room')
+
+    added_user = User.query.filter_by(email=args['email']).one_or_none()
+    if not added_user:
+        raise Error(StatusCode.BAD_REQUEST, 'This user does not exist')
+
+    is_participant = RoomParticipant.query.filter_by(user_id=added_user.id, room_id=room_id).one_or_none()
+    if not is_participant:
+        new_participant = RoomParticipant(user_id=user.id, room_id=room_id, status=ParticipantStatus.OUT)
         db.session.add(new_participant)
         db.session.commit()
 
         notification = {
-            "name": user.name,
-            "user_id": user.id,
+            "name": added_user.name,
+            "user_id": added_user.id,
             "room": room_id
         }
 
@@ -145,8 +160,8 @@ def add_participant_to_room(room_id, **kwargs):
             'message': 'New participant to the room is created',
             'data': RoomParticipantSchema().dump(new_participant).data
         }), 200
-    if checked_participant.status == ParticipantStatus.OUT or \
-            checked_participant.status == ParticipantStatus.DELETED:
+    elif is_participant.status == ParticipantStatus.OUT or is_participant.status == ParticipantStatus.DELETED:
+        # User is re-added to this room
         checked_participant.status = ParticipantStatus.IN
         db.session.commit()
 
@@ -162,8 +177,7 @@ def add_participant_to_room(room_id, **kwargs):
             'message': 'Participant is re-added to the room',
             'data': RoomParticipantSchema().dump(checked_participant).data
         }), 200
-
-    raise Error(StatusCode.UNAUTHORIZED, 'Already participated')
+    raise Error(StatusCode.UNAUTHORIZED, 'This user is already a member of this room')
 
 
 @app.route('/api/rooms/<int:room_id>/users', methods=['DELETE'])
