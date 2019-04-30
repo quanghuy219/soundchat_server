@@ -37,7 +37,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('room_id', sa.Integer(), nullable=True),
-    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('status', sa.String(length=50), nullable=True),
     sa.ForeignKeyConstraint(['room_id'], ['room.id'], name=op.f('fk_message_room_id_room')),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], name=op.f('fk_message_user_id_user')),

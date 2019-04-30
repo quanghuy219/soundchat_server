@@ -9,6 +9,7 @@ class MediaSchema(Schema):
     total_vote = fields.Int()
 
     media_time = fields.Float()
+    is_voted = fields.Boolean()
     status = fields.String()
 
 

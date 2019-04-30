@@ -11,11 +11,12 @@ from main.models.room_paticipant import RoomParticipant
 from main.models.message import Message
 from main.models.room_playlist import RoomPlaylist
 from main.models.media import Media
+from main.models.vote import Vote
 from main.schemas.media import MediaSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
 from main.schemas.room_playlist import RoomPlaylistSchema
-from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus
+from main.enums import ParticipantStatus, PusherEvent, MediaStatus, RoomStatus, VoteStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher, media_engine
 
@@ -47,14 +48,20 @@ def get_room_info(user, room_id, **kwargs):
     messages = db.session.query(Message).filter_by(room_id=room_id).all()
     playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
     media = db.session.query(Media).filter_by(room_id=room_id).filter_by(status=MediaStatus.VOTING).all()
-    # media_info = []
-    for each in media: 
-        voted_users = db.session.query(User).join(Vote).filter_by(each.id).all()
-        each['vote_users'] = voted_users
-        # media_info.append(each)
+
+    for media_item in media:
+        user_vote = Vote.query \
+            .filter_by(media_id=media_item.id, user_id=user.id, status=VoteStatus.UPVOTE).one_or_none()
+        # Check if user has voted for available media
+        if user_vote:
+            setattr(media_item, 'is_voted', True)
+        else:
+            setattr(media_item, 'is_voted', False)
+
     return jsonify({
         'message': 'Room Information',
         'data': {
+            'fingerprint': room.fingerprint,
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
             'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
@@ -341,12 +348,12 @@ def update_media_status(room_id, user, args):
             current_song.status = MediaStatus.FINISHED
 
             media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
-            current_media = media_engine.set_current_media(room_id)
-            parsed_current_media = MediaSchema().dump(current_media).data
-            if parsed_current_media:
-                parsed_current_media['media_time'] = 0
-                parsed_current_media['status'] = MediaStatus.PAUSING
-            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_current_media)
+            next_media = media_engine.set_current_media(room_id)
+            parsed_next_media = MediaSchema().dump(next_media).data
+            if parsed_next_media:
+                parsed_next_media['media_time'] = 0
+                parsed_next_media['status'] = MediaStatus.PAUSING
+            pusher.trigger(room_id, PusherEvent.PROCEED, parsed_next_media)
 
         res = {
             'message': 'Wait for other member to finish their video'
