@@ -3,7 +3,7 @@ from flask import jsonify
 from main import db, app
 from main.errors import Error, StatusCode
 from main.utils.helpers import parse_request_args, access_token_required
-from main.models.room_paticipant import RoomParticipant
+from main.models.room_participant import RoomParticipant
 from main.models.message import Message
 from main.schemas.message import MessageSchema
 from main.libs import pusher
