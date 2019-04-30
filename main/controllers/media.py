@@ -83,7 +83,7 @@ def add_media(user, args):
         media_engine.set_online_users_media_status(room_id, MediaStatus.PAUSING)
 
     return jsonify({
-        'message': 'media added to room successfully',
+        'message': 'Media added to room successfully',
         'data': MediaSchema().dump(new_media).data
     })
 
@@ -178,7 +178,7 @@ def down_vote(media_id, **kwargs):
             pusher.trigger(media.room_id, PusherEvent.DOWN_VOTE, data)
 
             return jsonify({
-                'message': 'down-voted successfully',
+                'message': 'Down-voted successfully',
                 'data': MediaSchema().dump(media).data
             })
 
@@ -193,7 +193,7 @@ def delete_video(media_id, **kwargs):
             media.status = MediaStatus.DELETED
             db.session.commit()
             return jsonify({
-                'message': 'deleted successfully',
+                'message': 'Deleted successfully',
                 'data': MediaSchema().dump(media).data
             }), 200
     raise Error(StatusCode.BAD_REQUEST, 'Cannot delete media')
