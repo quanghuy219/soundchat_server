@@ -48,20 +48,19 @@ def _handle_member_removed(data):
     channel_name = data['channel']
     room_id = parse_channel_name(channel_name)
     user_id = data['user_id']
-    user = User.query.filter_by(id=user_id).one()
-    data = {
-        'user_id': user.id,
-        'name': user.name,
-        'email': user.email
-    }
-    trigger(room_id, PusherEvent.EXIT_PARTICIPANT, data)
-
     participant = RoomParticipant.query \
+        .join(User, User.id == RoomParticipant.user_id) \
         .filter(RoomParticipant.user_id == user_id) \
         .filter(RoomParticipant.room_id == room_id) \
         .one_or_none()
 
-    if participant:
+    if participant and participant.status != ParticipantStatus.DELETED:
+        data = {
+            'user_id': participant.user.id,
+            'name': participant.user.name,
+            'email': participant.user.email
+        }
+        trigger(room_id, PusherEvent.EXIT_PARTICIPANT, data)
         participant.status = ParticipantStatus.OUT
         db.session.commit()
 
@@ -70,19 +69,19 @@ def _handle_member_added(data):
     channel_name = data['channel']
     room_id = parse_channel_name(channel_name)
     user_id = data['user_id']
-    user = User.query.filter_by(id=user_id).one()
-    data = {
-        'user_id': user.id,
-        'name': user.name,
-        'email': user.email
-    }
-    trigger(room_id, PusherEvent.NEW_PARTICIPANT, data)
 
     participant = RoomParticipant.query \
+        .join(User, User.id == RoomParticipant.user_id) \
         .filter(RoomParticipant.user_id == user_id) \
         .filter(RoomParticipant.room_id == room_id) \
         .one_or_none()
 
-    if participant:
+    if participant and participant.status != ParticipantStatus.DELETED:
+        data = {
+            'user_id': participant.user.id,
+            'name': participant.user.name,
+            'email': participant.user.email
+        }
+        trigger(room_id, PusherEvent.NEW_PARTICIPANT, data)
         participant.status = ParticipantStatus.IN
         db.session.commit()
