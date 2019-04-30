@@ -24,7 +24,6 @@ def authenticate_user(user):
 def pusher_webhook():
     webhook = read_pusher_webhook(request)
     events = webhook['events']
-    print(webhook)
     for event in events:
         if event['name'] == 'channel_vacated':
             _handle_channel_vacated(event)
