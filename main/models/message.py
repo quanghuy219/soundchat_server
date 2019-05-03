@@ -6,9 +6,9 @@ class Message(db.Model, TimestampMixin):
     __tablename__ = 'messages'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship('User')
-    room_id = db.Column(db.Integer, db.ForeignKey('room.id'))
+    room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     room = db.relationship('Room')
     content = db.Column(db.Text(collation='utf8mb4_unicode_ci'))
     status = db.Column(db.String(50))
