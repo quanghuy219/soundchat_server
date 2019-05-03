@@ -4,6 +4,6 @@ __all__ = [
     'room_participant',
     'room_playlist',
     'message',
-    'media',
+    'video',
     'vote'
 ]

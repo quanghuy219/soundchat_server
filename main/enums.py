@@ -31,7 +31,7 @@ class VoteStatus:
     DOWNVOTE = 'downvote'
 
 
-class MediaStatus: 
+class VideoStatus:
     ACTIVE = 'active'
     DELETED = 'deleted'
     VOTING = 'voting'
@@ -42,14 +42,14 @@ class MediaStatus:
     SEEKING = 'seeking'
 
 
-class MediaAction:
+class VideoAction:
     PLAY = 'play'
     PAUSE = 'pause'
     SEEK = 'seek'
 
 
-MediaActions = [
-    MediaAction.PLAY,
-    MediaAction.PAUSE,
-    MediaAction.SEEK
+VideoActions = [
+    VideoAction.PLAY,
+    VideoAction.PAUSE,
+    VideoAction.SEEK
 ]

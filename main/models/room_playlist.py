@@ -8,7 +8,7 @@ class RoomPlaylist(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'))
     room = db.relationship('Room', backref=db.backref('playlist', uselist=False, cascade='delete,all'))
-    media_id = db.Column(db.Integer, db.ForeignKey('media.id'))
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'))
     status = db.Column(db.String(50))
 
     def __init__(self, *args, **kwargs):

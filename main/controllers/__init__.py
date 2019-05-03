@@ -1,1 +1,1 @@
-from . import user, room, message, pusher, media
+from . import user, room, message, pusher, video

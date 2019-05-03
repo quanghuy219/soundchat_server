@@ -7,7 +7,7 @@ from main.models.user import User
 from main.utils.helpers import access_token_required
 from main.libs.pusher import authenticate, read_pusher_webhook, parse_channel_name, trigger
 from main.errors import Error
-from main.enums import MediaStatus, ParticipantStatus, PusherEvent
+from main.enums import VideoStatus, ParticipantStatus, PusherEvent
 
 
 @app.route('/pusher/auth', methods=['POST'])
@@ -39,8 +39,8 @@ def _handle_channel_vacated(data):
     channel_name = data['channel']
     room_id = parse_channel_name(channel_name)
     room = Room.query.filter(Room.id == room_id).one()
-    if room.status == MediaStatus.PLAYING:
-        room.status = MediaStatus.PAUSING
+    if room.status == VideoStatus.PLAYING:
+        room.status = VideoStatus.PAUSING
         db.session.commit()
 
 
