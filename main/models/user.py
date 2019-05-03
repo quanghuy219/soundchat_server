@@ -4,7 +4,7 @@ from main.utils.password import generate_salt, generate_hash
 
 
 class User(db.Model, TimestampMixin):
-    __tablename__ = 'user'
+    __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)

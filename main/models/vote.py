@@ -3,7 +3,7 @@ from main.models.base import TimestampMixin
 
 
 class Vote(db.Model, TimestampMixin):
-    __tablename__ = 'vote'
+    __tablename__ = 'votes'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     media_id = db.Column(db.Integer, db.ForeignKey('media.id'))
