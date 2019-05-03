@@ -3,7 +3,7 @@ from main.models.base import TimestampMixin
 
 
 class RoomParticipant(db.Model, TimestampMixin):
-    __tablename__ = 'room_participant'
+    __tablename__ = 'room_participants'
 
     id = db.Column(db.Integer, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)

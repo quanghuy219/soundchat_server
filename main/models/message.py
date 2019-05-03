@@ -3,7 +3,7 @@ from main.models.base import TimestampMixin
 
 
 class Message(db.Model, TimestampMixin):
-    __tablename__ = 'message'
+    __tablename__ = 'messages'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
