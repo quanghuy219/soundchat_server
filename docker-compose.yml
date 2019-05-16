@@ -1,0 +1,47 @@
+version: '3.5'
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+      MYSQL_DATABASE: soundchat_dev
+    restart: unless-stopped
+    ports:
+      - "33061:3306"
+    expose:
+      - '3306'
+    volumes:
+      - db:/var/lib/mysql
+  soundchat-redis:
+    image: redis
+    restart: unless-stopped
+    ports:
+      - "63791:6379"
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENV: development
+    depends_on:
+      - db
+      - soundchat-redis
+    environment:
+       CELERY_BROKER: redis://soundchat-redis
+    ports:
+      - "8000:8000"
+  celery-worker:
+    build:
+      context: .
+      dockerfile: CeleryWorkerDockerfile
+    depends_on:
+      - soundchat-redis
+    environment:
+      CELERY_BROKER: redis://soundchat-redis
+
+
+volumes:
+  db:
+
