@@ -90,4 +90,4 @@ def access_token_required(f):
 
 def create_fingerprint():
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for i in range(20))
+    return ''.join(random.choice(letters) for i in range(8))

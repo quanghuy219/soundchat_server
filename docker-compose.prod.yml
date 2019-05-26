@@ -9,50 +9,58 @@ services:
       MYSQL_DATABASE: soundchat_dev
     restart: unless-stopped
     ports:
-      - "33061:3306"
+      - "3306:3306"
     expose:
-      - '3306'
+      - "3306"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
     volumes:
       - soundchat-mysql:/var/lib/mysql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    environment:
-      PMA_HOST: soundchat-mysql
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: soundchat_admin
-    ports:
-      - 9000:80
-    depends_on:
-      - soundchat-mysql
 
   soundchat-redis:
     image: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
 
   soundchat-server:
-    build:
-      context: ./soundchat-server
-      dockerfile: Dockerfile
+    image: huypq/soundchat_soundchat-server:v1
     depends_on:
       - soundchat-mysql
       - soundchat-redis
     environment:
        FLASK_ENV: production
+    deploy:
+      placement:
+        constraints: [node.role == manager]
     ports:
       - "8000:8000"
 
   celery-worker:
-    build:
-      context: ./soundchat-server
-      dockerfile: CeleryWorkerDockerfile
+    image: huypq/soundchat_celery-worker:v1
     depends_on:
       - soundchat-redis
     environment:
       FLASK_ENV: production
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "9000:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - webnet
 
 volumes:
   soundchat-mysql:

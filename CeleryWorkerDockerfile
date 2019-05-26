@@ -3,12 +3,17 @@ FROM python:3.7
 RUN apt-get update
 RUN apt-get -y install default-libmysqlclient-dev || apt-get -y install libmysqlclient-dev
 
-ADD ./requirements.txt ./requirements.txt
+ADD ./requirements.txt /soundchat-server/requirements.txt
 
-COPY . .
+WORKDIR /soundchat-server
+
+COPY ./main ./main
+COPY ./run_celery.sh ./run_celery.sh
 
 RUN pip install -r requirements.txt
 
 ENV CELERY_BROKER_URL redis://soundchat-redis
+ENV FLASK_ENV production
 
-CMD celery -A tasks worker --app=main.libs.tasks --loglevel=DEBUG
+RUN chmod +x ./run_celery.sh
+CMD ./run_celery.sh

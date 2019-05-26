@@ -7,3 +7,5 @@ class ProductionConfig(Config):
     PUSHER_SECRET = "2ed0217dd314e94946f9"
     PUSHER_CLUSTER = "ap1"
     PUSHER_NAMESPACE = 'soundchat'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://admin:admin@321@soundchat-mysql:3306/soundchat_dev?charset=utf8mb4'
+    CELERY_BROKER = 'redis://soundchat-redis'
