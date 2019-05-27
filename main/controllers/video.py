@@ -115,7 +115,7 @@ def up_vote(video_id, **kwargs):
 
         data = {
             "name": user.name,
-            "video": video.id,
+            "id": video.id,
             "total_vote": video.total_vote
         }
 
@@ -135,7 +135,7 @@ def up_vote(video_id, **kwargs):
 
         data = {
             "name": user.name,
-            "video": video.id,
+            "id": video.id,
             "total_vote": video.total_vote
         }
 
@@ -171,7 +171,7 @@ def down_vote(video_id, **kwargs):
             db.session.commit()
             data = {
                 "name": user.name,
-                "video": video.id,
+                "id": video.id,
                 "total_vote": video.total_vote
             }
 
