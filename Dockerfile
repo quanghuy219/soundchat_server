@@ -9,16 +9,11 @@ ADD ./requirements.txt /soundchat-server/requirements.txt
 
 WORKDIR /soundchat-server
 
-COPY ./main ./main
-COPY ./run.py ./run.py
-COPY ./manage.py ./manage.py
-COPY ./database.py ./database.py
-COPY ./start_server.sh ./start_server.sh
+COPY . /soundchat-server
 
 RUN pip install -r requirements.txt
 
-RUN chmod +x ./start_server.sh
+RUN chmod +x /soundchat-server/run.sh
+RUN chmod +x /soundchat-server/wait-for-it.sh
 
-CMD python database.py
-
-CMD ./start_server.sh
+CMD ./run.sh

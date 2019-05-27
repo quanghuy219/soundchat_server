@@ -38,7 +38,7 @@ services:
       placement:
         constraints: [node.role == manager]
     ports:
-      - "8000:8000"
+      - "8000:80"
 
   celery-worker:
     image: huypq/soundchat_celery-worker:latest
