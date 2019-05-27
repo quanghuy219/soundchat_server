@@ -10,7 +10,7 @@ from main.errors import Error
 from main.enums import VideoStatus, ParticipantStatus, PusherEvent
 
 
-@app.route('/pusher/auth', methods=['POST'])
+@app.route('/api/pusher/auth', methods=['POST'])
 @access_token_required
 def authenticate_user(user):
     res = authenticate(request, user)
@@ -20,7 +20,7 @@ def authenticate_user(user):
     return jsonify(res)
 
 
-@app.route('/pusher/webhook', methods=['POST'])
+@app.route('/api/pusher/webhook', methods=['POST'])
 def pusher_webhook():
     webhook = read_pusher_webhook(request)
     events = webhook['events']
