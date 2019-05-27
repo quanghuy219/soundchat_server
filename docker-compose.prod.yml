@@ -28,7 +28,7 @@ services:
         constraints: [node.role == manager]
 
   soundchat-server:
-    image: huypq/soundchat_soundchat-server:v1
+    image: huypq/soundchat_soundchat-server:latest
     depends_on:
       - soundchat-mysql
       - soundchat-redis
@@ -41,7 +41,7 @@ services:
       - "8000:8000"
 
   celery-worker:
-    image: huypq/soundchat_celery-worker:v1
+    image: huypq/soundchat_celery-worker:latest
     depends_on:
       - soundchat-redis
     environment:
@@ -61,6 +61,18 @@ services:
         constraints: [node.role == manager]
     networks:
       - webnet
+
+  soundchat-frontend:
+    image: huypq/soundchat_soundchat-frontend:latest
+    deploy:
+      replicas: 2
+    depends_on:
+      - soundchat-server
+    environment:
+       NODE_ENV: production
+    ports:
+      - "3000:8080"
+
 
 volumes:
   soundchat-mysql:
