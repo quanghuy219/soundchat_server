@@ -7,14 +7,12 @@ from main.utils.helpers import parse_request_args, access_token_required, create
 from main.models.room import Room
 from main.models.room_participant import RoomParticipant
 from main.models.message import Message
-from main.models.room_playlist import RoomPlaylist
 from main.models.video import Video
 from main.models.vote import Vote
 from main.models.user import User
 from main.schemas.video import VideoSchema
 from main.schemas.room import RoomSchema
 from main.schemas.message import MessageSchema
-from main.schemas.room_playlist import RoomPlaylistSchema
 from main.enums import ParticipantStatus, PusherEvent, VideoStatus, RoomStatus, VoteStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher, video_engine
@@ -46,7 +44,6 @@ def get_room_info(user, room_id, **kwargs):
     # Return list of online user
     participants = db.session.query(RoomParticipant).filter_by(room_id=room_id, status=ParticipantStatus.IN).all()
     messages = db.session.query(Message).filter_by(room_id=room_id).all()
-    playlist = db.session.query(RoomPlaylist).filter_by(room_id=room_id).all()
     videos = db.session.query(Video).filter_by(room_id=room_id).filter_by(status=VideoStatus.VOTING).all()
 
     for video in videos:
@@ -65,7 +62,6 @@ def get_room_info(user, room_id, **kwargs):
             'name': room.name,
             'participants': RoomParticipantSchema(many=True).dump(participants).data,
             'messages': MessageSchema(many=True).dump(messages).data,
-            'playlist': RoomPlaylistSchema(many=True).dump(playlist).data,
             'videos': VideoSchema(many=True).dump(videos).data
         }
     }), 200
