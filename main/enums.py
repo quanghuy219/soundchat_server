@@ -10,7 +10,7 @@ class PusherEvent:
     DELETE_PARTICIPANT = 'delete_participant'
     UP_VOTE = 'up_vote'
     DOWN_VOTE = 'down_vote'
-    NEW_MEDIA = 'new_media'
+    NEW_VIDEO = 'new_video'
     MEDIA_STATUS_CHANGED = 'media_status_changed'
     PROCEED = 'proceed'
 

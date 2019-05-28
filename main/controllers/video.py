@@ -64,7 +64,7 @@ def add_video(user, args):
     db.session.add(new_video)
     db.session.flush()
 
-    pusher.trigger(room_id, PusherEvent.NEW_MEDIA, VideoSchema().dump(new_video).data)
+    pusher.trigger(room_id, PusherEvent.NEW_VIDEO, VideoSchema().dump(new_video).data)
 
     new_vote = Vote(video_id=new_video.id, user_id=user.id, status=VoteStatus.UPVOTE)
     db.session.add(new_vote)
