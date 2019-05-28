@@ -301,7 +301,7 @@ def update_video_status(room_id, user, args):
                 'event': VideoStatus.PLAYING,
                 'data': VideoSchema().dump(current_video).data
             }
-            pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+            pusher.trigger(room_id, PusherEvent.VIDEO_STATUS_CHANGED, event_data)
             video_engine.set_online_users_video_status(room_id, VideoStatus.PLAYING)
             room.status = VideoStatus.PLAYING
 
@@ -315,7 +315,7 @@ def update_video_status(room_id, user, args):
             'event': VideoStatus.PLAYING,
             'data': VideoSchema().dump(current_song).data
         }
-        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+        pusher.trigger(room_id, PusherEvent.VIDEO_STATUS_CHANGED, event_data)
         res = {
             'message': 'Play video'
         }
@@ -329,7 +329,7 @@ def update_video_status(room_id, user, args):
             'event': VideoStatus.PAUSING,
             'data': VideoSchema().dump(current_song).data
         }
-        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+        pusher.trigger(room_id, PusherEvent.VIDEO_STATUS_CHANGED, event_data)
         res = {
             'message': 'Pause video'
         }
@@ -343,7 +343,7 @@ def update_video_status(room_id, user, args):
             'event': VideoStatus.SEEKING,
             'data': VideoSchema().dump(current_song).data
         }
-        pusher.trigger(room_id, PusherEvent.MEDIA_STATUS_CHANGED, event_data)
+        pusher.trigger(room_id, PusherEvent.VIDEO_STATUS_CHANGED, event_data)
         res = {
             'message': 'Seek video'
         }
