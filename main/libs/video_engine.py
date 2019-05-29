@@ -44,6 +44,7 @@ def set_current_video(room_id, current_video_id=None, video_time=0, status=Video
     if current_video_id is None:
         next_video = get_next_video(room_id)
         if next_video is not None:
+            next_video.status = VideoStatus.PLAYING
             current_video_id = next_video.id
 
     room = Room.query.filter(Room.id == room_id).one_or_none()

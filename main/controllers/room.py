@@ -16,6 +16,7 @@ from main.schemas.message import MessageSchema
 from main.enums import ParticipantStatus, PusherEvent, VideoStatus, RoomStatus, VoteStatus
 from main.schemas.room_participant import RoomParticipantSchema
 from main.libs import pusher, video_engine
+from main.libs.rate_limit import RateLimit
 
 
 @app.route('/api/rooms', methods=['GET'])
@@ -285,6 +286,22 @@ def update_video_status(room_id, user, args):
     status = args['status']
 
     room = Room.query.filter(Room.id == room_id).one()
+
+    # Limit user from seeking or pausing video in a room
+    if not room.current_video:
+        raise Error(StatusCode.BAD_REQUEST, 'There is no current media in this room')
+
+    meta_data = {
+        'room': room_id,
+        'video': room.current_video,
+        'user': user.id
+    }
+    rlimit = RateLimit(10, 3 * 60, meta_data)
+    if status in (VideoStatus.SEEKING, VideoStatus.PAUSING):
+        if rlimit.is_over_limit:
+            raise Error(StatusCode.FORBIDDEN, 'You have been seeking or pausing too many times recently')
+
+        rlimit.increase()
 
     if status == VideoStatus.READY:
         # Only play video when all members are ready

@@ -9,3 +9,4 @@ class ProductionConfig(Config):
     PUSHER_NAMESPACE = 'soundchat'
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://admin:admin@321@soundchat-mysql:3306/soundchat_dev?charset=utf8mb4'
     CELERY_BROKER = 'redis://soundchat-redis'
+    REDIS_URI = 'redis://soundchat-redis'
