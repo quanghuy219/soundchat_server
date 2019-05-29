@@ -47,7 +47,7 @@ services:
 
   celery-worker:
     build:
-      context: ./soundchat-server
+      context: ./soundchat_server
       dockerfile: CeleryWorkerDockerfile
     depends_on:
       - soundchat-redis
