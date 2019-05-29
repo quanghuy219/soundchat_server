@@ -35,7 +35,7 @@ services:
 
   soundchat-server:
     build:
-      context: ./soundchat-server
+      context: ./soundchat_server
       dockerfile: Dockerfile
     depends_on:
       - soundchat-mysql
