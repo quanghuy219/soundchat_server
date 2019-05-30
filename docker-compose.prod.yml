@@ -23,9 +23,6 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    deploy:
-      placement:
-        constraints: [node.role == manager]
 
   soundchat-server:
     image: huypq/soundchat_soundchat-server:latest
@@ -34,11 +31,13 @@ services:
       - soundchat-redis
     environment:
        FLASK_ENV: production
-    deploy:
-      placement:
-        constraints: [node.role == manager]
     ports:
       - "8000:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
 
   celery-worker:
     image: huypq/soundchat_celery-worker:latest
@@ -46,9 +45,11 @@ services:
       - soundchat-redis
     environment:
       FLASK_ENV: production
-    deploy:
-      placement:
-        constraints: [node.role == manager]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
 
   visualizer:
     image: dockersamples/visualizer:stable
@@ -72,6 +73,11 @@ services:
        NODE_ENV: production
     ports:
       - "3000:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
 
 
 volumes:
