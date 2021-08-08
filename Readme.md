@@ -1,4 +1,11 @@
-# Installation guild
+# Soundchat
+A web application that allows you and your friends to join chat room and enjoy Youtube videos at the same pace in real-time.
+
+*Note:*
+- This repository contains code for the backend side of the project.
+- The frontend code lies [here](https://github.com/quanghuy219/sound-chat-client).
+
+## Installation guide
 
 - Pre-requirements: python3, mysql, pip3 must be installed in your computer.
 
