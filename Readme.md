@@ -1,5 +1,5 @@
 # Soundchat
-A web application that allows you and your friends to join chat room and enjoy Youtube videos at the same pace in real-time.
+A web application that allows you and your friends to join chat rooms and enjoy Youtube videos at the same pace in real-time.
 
 *Note:*
 - This repository contains code for the backend side of the project.
